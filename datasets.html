@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aquaris AI - Datasets</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+<style>
+body { font-family: 'Inter', sans-serif; background-color: #0d0d0d; color: white; }
+.container { max-width: 1000px; margin: 2rem auto; padding: 1rem; }
+.dataset-viewer { background-color: #1a1a1a; padding: 1.5rem; border-radius: 1rem; margin-top: 1rem; border: 1px solid #333; }
+.dataset-item { cursor: pointer; padding: 0.75rem; border-radius: 0.5rem; transition: 0.2s; border-left: 4px solid transparent; }
+.dataset-item:hover { background-color: #333; border-left-color: #06b6d4; }
+.dataset-item.bg-gray-700 { background-color: #374151; }
+.dataset-item.bg-gray-600 { background-color: #4b5563; }
+input[type=file] { color: white; }
+/* Custom Table Styling */
+#datasetTableContainer table { border-collapse: collapse; width: 100%; font-size: 0.8rem; }
+#datasetTableContainer th { background-color: #06b6d4; color: black; padding: 0.5rem 1rem; text-align: left; position: sticky; top: 0; z-index: 10; }
+#datasetTableContainer td { padding: 0.5rem 1rem; border-bottom: 1px solid #333; word-break: break-word; }
+#datasetTableContainer tr:nth-child(even) { background-color: #222; }
+#datasetTableContainer tr:hover { background-color: #333; }
+</style>
+</head>
+<body>
+
+<header class="fixed top-0 left-0 w-full bg-gray-900 bg-opacity-90 backdrop-blur-sm z-50 border-b border-gray-700">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center relative">
+        <a href="index.html" title="Back to Main Page"
+           class="p-2 rounded-full hover:bg-gray-700 transition absolute left-4">
+            <svg class="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>
+        </a>
+        <div class="flex-grow text-center font-bold text-xl text-cyan-400">
+            Aquaris AI - Datasets
+        </div>
+    </div>
+</header>
+
+<main class="pt-20 container"> 
+    <h2 class="text-2xl font-bold mb-4 text-cyan-400">Available Datasets</h2>
+    <div id="dataset-list" class="space-y-2"></div>
+
+    <h2 class="text-2xl font-bold mt-8 mb-4 text-cyan-400">Add a Dataset or ZIP</h2>
+    <div class="flex items-center p-4 bg-gray-800 rounded-lg">
+        <input type="file" id="fileInput" accept=".csv,.json,.zip" multiple class="flex-grow file:mr-4 file:py-2 file:px-4
+            file:rounded-full file:border-0
+            file:text-sm file:font-semibold
+            file:bg-cyan-500 file:text-white
+            hover:file:bg-cyan-600"/>
+        <button id="uploadBtn" class="bg-cyan-500 px-4 py-2 rounded font-semibold hover:bg-cyan-600 ml-4">Upload</button>
+    </div>
+
+    <div id="message" class="mt-4 text-sm text-gray-400"></div>
+
+    <div class="dataset-viewer">
+        <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
+            <h3 class="text-xl font-semibold text-gray-300" id="viewerTitle">Dataset Viewer</h3>
+            <button id="downloadBtn" class="hidden bg-green-600 px-4 py-2 rounded font-semibold hover:bg-green-700 text-white text-sm">
+                Download File
+            </button>
+        </div>
+        
+        <div id="datasetTableContainer" class="max-h-[500px] overflow-auto">
+            <p class="text-gray-500 p-4 text-center">Click on a dataset to view its full content.</p>
+        </div>
+    </div>
+</main>
+
+<script>
+const fileInput = document.getElementById('fileInput');
+const uploadBtn = document.getElementById('uploadBtn');
+const message = document.getElementById('message');
+const datasetList = document.getElementById('dataset-list');
+const datasetTableContainer = document.getElementById('datasetTableContainer');
+const viewerTitle = document.getElementById('viewerTitle');
+const downloadBtn = document.getElementById('downloadBtn');
+
+const MAX_ROWS_TO_RENDER = 500; // Safety limit to prevent browser crashes on large files
+
+// --- DATA PARSING AND TABLE GENERATION FUNCTIONS ---
+
+/**
+ * Parses raw file content and generates a full HTML table.
+ */
+function displayFullDataset(filename, text) {
+    let headers = [];
+    let allRows = []; 
+    let rowsToDisplay = [];
+    let totalRowCount = 0;
+
+    try {
+        if (filename.toLowerCase().endsWith('.csv')) {
+            // Use regex for robust line splitting across different OS line endings
+            const lines = text.split(/\r?\n/).filter(l => l.trim());
+            if (lines.length === 0) throw new Error("File is empty.");
+            
+            // 1. Get Headers
+            headers = lines[0].split(',').map(h => h.trim());
+            
+            // 2. Get All Rows
+            allRows = lines.slice(1).map(line => {
+                const values = line.split(',');
+                // Ensure every row has the same number of columns as headers
+                return values.map(v => v.trim()); 
+            }).filter(row => row.length === headers.length);
+
+            totalRowCount = allRows.length;
+            
+        } else if (filename.toLowerCase().endsWith('.json')) {
+            const json = JSON.parse(text);
+            if (json.length === 0) throw new Error("JSON file is empty.");
+
+            // 1. Get Headers (all unique keys from all objects)
+            const allKeys = new Set();
+            json.forEach(obj => {
+                Object.keys(obj).forEach(key => allKeys.add(key));
+            });
+            headers = Array.from(allKeys);
+            
+            // 2. Get All Rows
+            allRows = json.map(obj => {
+                return headers.map(header => {
+                    const value = obj[header];
+                    // Handle null/undefined values
+                    return value === undefined || value === null ? '' : String(value);
+                });
+            });
+            totalRowCount = allRows.length;
+
+        } else {
+            throw new Error(`File type not supported for viewing: ${filename.split('.').pop().toUpperCase()}.`);
+        }
+        
+        if (totalRowCount === 0) throw new Error("No data rows found.");
+
+        // Apply display limit for performance
+        rowsToDisplay = allRows.slice(0, MAX_ROWS_TO_RENDER);
+
+        // --- Generate HTML Table ---
+        let tableHtml = '<table><thead><tr>';
+        
+        // Headers
+        tableHtml += headers.map(h => `<th>${h}</th>`).join('');
+        tableHtml += '</tr></thead><tbody>';
+
+        // Rows
+        tableHtml += rowsToDisplay.map(row => {
+            return '<tr>' + row.map(cell => `<td>${cell}</td>`).join('') + '</tr>';
+        }).join('');
+        
+        tableHtml += '</tbody></table>';
+        
+        // Update DOM
+        datasetTableContainer.innerHTML = tableHtml;
+        viewerTitle.textContent = `Viewing: ${filename} (${totalRowCount} total rows)`;
+        
+        let displayMessage = `Full dataset content loaded for ${filename}.`;
+        if (totalRowCount > MAX_ROWS_TO_RENDER) {
+            displayMessage = `Dataset loaded. Display is **limited to the first ${MAX_ROWS_TO_RENDER} rows** for performance. Total rows: ${totalRowCount}.`;
+        }
+
+        message.textContent = displayMessage;
+        
+        // Show Download Button
+        downloadBtn.onclick = () => handleDownload(filename);
+        downloadBtn.classList.remove('hidden');
+
+
+    } catch (err) {
+        console.error("Data Parsing Error:", err);
+        
+        let errorMessage = err.message;
+        // Specific check for the user-reported error on large files
+        if (errorMessage.includes("Invalid string length") || errorMessage.includes("Maximum call stack size exceeded")) {
+             errorMessage = `Critical error: File is likely too large (${text.length} chars) for the browser to process. Please use the Download button for the full file.`;
+        }
+
+        viewerTitle.textContent = "Dataset Viewer";
+        downloadBtn.classList.add('hidden');
+        datasetTableContainer.innerHTML = `<p class="text-red-400 p-4 text-center">Error: ${errorMessage}</p>`;
+        message.textContent = `Error opening ${filename}: ${errorMessage}`;
+    }
+}
+
+/**
+ * Handles the file download process.
+ */
+function handleDownload(filename) {
+    const encodedFilename = encodeURIComponent(filename); 
+    const downloadUrl = `http://127.0.0.1:5000/api/datasets/${encodedFilename}`;
+    
+    // Create a temporary anchor element to trigger the download
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = filename; // Suggest the original filename
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    message.textContent = `Download started for ${filename}.`;
+}
+
+// --- FILE LISTING AND FETCHING ---
+
+// Adds a persistent or newly uploaded dataset to list (for single files or ZIPs)
+function addDatasetToList(name) {
+  const item = document.createElement('div');
+  item.className = 'dataset-item bg-gray-700';
+  item.textContent = name;
+  item.onclick = () => handleItemClick(name); // Handler for fetching content
+  datasetList.appendChild(item);
+}
+
+// Adds an extracted file from ZIP to list (content is ready for display)
+function addZippedDatasetToList(name, content) {
+    const item = document.createElement('div');
+    item.className = 'dataset-item bg-gray-600 ml-4';
+    item.textContent = `-> ${name}`;
+    item.onclick = () => {
+        try {
+            // Display full dataset for zipped files
+            displayFullDataset(name, content);
+        } catch(err) {
+            message.textContent = `Error viewing ${name}: ${err.message}`;
+        }
+    };
+    datasetList.appendChild(item);
+}
+
+// Function to process content fetched from a ZIP file
+async function processZippedContent(zipFilename, arrayBuffer) {
+    try {
+        const zip = await JSZip.loadAsync(arrayBuffer);
+        
+        // Clear previous list, show the ZIP name
+        datasetList.innerHTML = `<div class="font-bold text-lg text-cyan-400 mt-4 mb-2">📦 Content of ${zipFilename}:</div>`;
+
+        let filesListed = 0;
+        for (const filename of Object.keys(zip.files)) {
+            // Check for CSV/JSON files and skip directories
+            if (filename.endsWith('/') || (!filename.toLowerCase().endsWith('.csv') && !filename.toLowerCase().endsWith('.json'))) continue; 
+            
+            // Extract file content for quick viewing when clicked
+            const fileData = await zip.files[filename].async('string');
+            
+            // Add the internal file to the visible list with its content logic
+            addZippedDatasetToList(filename, fileData); 
+            filesListed++;
+        }
+        message.textContent = `Content from ZIP ${zipFilename} loaded successfully. Click a file below to view its content.`;
+    } catch (err) {
+        message.textContent = `Error extracting ZIP content: ${err.message}`;
+        console.error("ZIP Extraction Error:", err);
+    }
+}
+
+// Handler for when a listed file is clicked
+async function handleItemClick(filename) {
+    message.textContent = `Fetching content for ${filename}...`;
+    try {
+        // Use URL-encoding to handle spaces/special characters in filenames
+        const encodedFilename = encodeURIComponent(filename); 
+        
+        // Fetch file content from the backend
+        const response = await fetch(`http://127.0.0.1:5000/api/datasets/${encodedFilename}`);
+        
+        if (!response.ok) {
+             throw new Error(`Failed to fetch file: ${response.status} (${response.statusText}). Check server logs.`);
+        }
+        
+        if (filename.toLowerCase().endsWith('.zip')) {
+            // ZIP: Read as ArrayBuffer and pass to JSZip for extraction
+            const arrayBuffer = await response.arrayBuffer();
+            await processZippedContent(filename, arrayBuffer);
+        } else {
+            // CSV/JSON: Read as text and pass to the display function
+            const text = await response.text();
+            displayFullDataset(filename, text);
+        }
+
+    } catch(err) {
+        console.error("Fetch/Parse Error:", err);
+        
+        let errorMessage = err.message;
+        // Improved error reporting for large file issues
+        if (errorMessage.includes("Invalid string length") || errorMessage.includes("Maximum call stack size exceeded")) {
+             errorMessage = `Critical error: The file is too large for the browser to process. Please use the Download button for the full file.`;
+        }
+
+        // Reset view when error occurs
+        viewerTitle.textContent = "Dataset Viewer";
+        downloadBtn.classList.add('hidden');
+        datasetTableContainer.innerHTML = `<p class="text-red-400 p-4 text-center">Error opening ${filename}: ${errorMessage}</p>`;
+        message.textContent = `Error opening ${filename}: ${errorMessage}`;
+    }
+}
+
+// --- PERSISTENCE LOGIC ---
+
+// Fetch the list of files from the server on page load
+async function fetchFileList() {
+    message.textContent = "Loading available datasets...";
+    datasetList.innerHTML = "";
+    try {
+        const response = await fetch('http://127.0.0.1:5000/api/datasets/list');
+        if (!response.ok) throw new Error("Failed to connect to backend to retrieve file list.");
+        
+        const files = await response.json();
+        
+        if (files.length === 0) {
+            message.textContent = "No datasets found on the server. Upload one to begin.";
+            return;
+        }
+
+        files.forEach(filename => {
+            addDatasetToList(filename); // Add to the list with click handler
+        });
+        message.textContent = `${files.length} datasets loaded from server. Click a file name to view its full data.`;
+
+    } catch (err) {
+        console.error(err);
+        message.textContent = `ERROR: ${err.message}. Ensure server.py is running and accessible.`;
+    }
+}
+
+// Handle uploaded files (sends to backend, then refreshes list)
+async function handleFile(file) {
+  message.textContent = `Uploading file "${file.name}"...`;
+    
+  const formData = new FormData();
+  formData.append('file', file);
+    
+  try {
+    // STEP 1: Upload to Flask backend
+    const response = await fetch('http://127.0.0.1:5000/api/datasets', {
+      method: 'POST',
+      body: formData
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message || 'Server upload failed.');
+    }
+
+    // STEP 2: Reload the persistent list to show the new file
+    await fetchFileList();
+    
+  } catch(err) {
+    console.error("Upload Error:", err);
+    message.textContent = `Error uploading "${file.name}": ${err.message}`;
+  }
+}
+
+
+// --- EVENT LISTENERS AND INITIALIZATION ---
+
+uploadBtn.addEventListener('click', () => {
+  const files = fileInput.files;
+  if (!files.length) { message.textContent = "Select at least one file."; return; }
+  
+  Array.from(files).forEach(file => handleFile(file));
+});
+
+// Load files when the page loads (Persistence)
+document.addEventListener('DOMContentLoaded', fetchFileList);
+</script>
+</body>
+</html>

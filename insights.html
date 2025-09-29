@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Aquaris AI - Cross Disciplinary Analysis</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #f5f8fa;
+      color: #222;
+    }
+     .back-icon {
+     position: absolute;
+     top: 30px; /* Adjusted slightly lower for better visibility */
+     left: 30px;
+     color: #fff; /* White icon color to contrast with the blue header */
+     text-decoration: none;
+     padding: 10px;
+     border-radius: 50%; /* Make it circular */
+     transition: background 0.3s, transform 0.1s;
+     z-index: 1000;
+     cursor: pointer;
+     line-height: 0; /* Align SVG perfectly */
+    }
+     .back-icon:hover {
+      background-color: rgba(255, 255, 255, 0.2); /* Subtle white overlay on hover */
+      transform: scale(1.05);
+    }
+    header {
+      text-align: center;
+      padding: 40px 20px;
+      background: #003049;
+      color: #fff;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 48px;
+      font-weight: bold;
+    }
+    .dropdown-container {
+      text-align: center;
+      margin: 30px;
+    }
+    select {
+      padding: 14px 18px;
+      font-size: 22px;
+      border-radius: 8px;
+    }
+    .section {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 60px 10%;
+      gap: 40px;
+      min-height: 100vh;
+      transition: all 0.5s;
+      border-bottom: 4px solid #eee;
+    }
+    .section-content {
+      flex: 1;
+      font-size: 22px;
+      line-height: 1.8;
+    }
+    .section h2 {
+      font-size: 40px;
+      margin-top: 0;
+      margin-bottom: 20px;
+      color: #003049;
+    }
+    .section img {
+      flex: 1;
+      max-width: 450px;
+      height: auto;
+      object-fit: cover;
+      border-radius: 12px;
+      background: #ddd;
+    }
+    .section:nth-child(even) {
+    flex-direction: row-reverse;
+    }
+    /* Different light background colors for sections */
+    .section:nth-child(1) { background: #fef9f9; }
+    .section:nth-child(2) { background: #f9fdfd; }
+    .section:nth-child(3) { background: #fcf9fd; }
+    .section:nth-child(4) { background: #f9fcf5; }
+    .section:nth-child(5) { background: #fffaf0; }
+    .section:nth-child(6) { background: #f0f9ff; }
+    .section:nth-child(7) { background: #fdf9f4; }
+
+    /* Chatbot toggle button */
+    .chatbot-toggle {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      width: 70px;
+      height: 70px;
+      background: #003049;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 30px;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+      z-index: 999;
+    }
+
+    /* Chatbot panel */
+    .chatbot {
+      position: fixed;
+      bottom: 110px;
+      right: 30px;
+      width: 350px;
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+      font-size: 16px;
+      z-index: 999;
+      display: none;
+    }
+    .chatbot h3 {
+      margin-top: 0;
+      font-size: 22px;
+      color: #003049;
+    }
+    .chatbot label {
+      display: block;
+      margin-top: 12px;
+      font-weight: bold;
+    }
+    .chatbot input, .chatbot select, .chatbot button {
+      width: 100%;
+      margin-top: 6px;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+    }
+    .chatbot button {
+      margin-top: 15px;
+      background: #003049;
+      color: #fff;
+      cursor: pointer;
+    }
+    .chat-output {
+      margin-top: 15px;
+      padding: 12px;
+      background: #f0f0f0;
+      border-radius: 6px;
+      min-height: 100px;
+      font-size: 15px;
+      color: #444;
+      white-space: pre-line;
+    }
+  </style>
+</head>
+<body>
+ <header>
+        <!-- The back icon is now inside the header -->
+        <a href="#" class="back-icon" onclick="history.back(); return false;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 12H5"></path>
+        <path d="M12 19l-7-7 7-7"></path>
+        </svg>
+        </a>
+       <h1>Cross Disciplinary Analysis</h1>
+ </header>
+
+  <!-- Category dropdown -->
+  <div class="dropdown-container">
+    <label for="main-topic" style="font-size:24px;font-weight:bold;">Choose Category: </label>
+    <select id="main-topic" onchange="updateSections()">
+      <option>General</option>
+      <option>Migration Pattern</option>
+      <option>Species Distribution</option>
+      <option>Coral Bleaching</option>
+      <option>Healthy Ecosystem</option>
+      <option>Oil Spill Pattern Influence</option>
+    </select>
+  </div>
+
+  <!-- Factors Sections -->
+  <div class="section">
+    <div class="section-content">
+      <h2>Temperature</h2>
+      <p id="temp-text"></p>
+    </div>
+    <img src="d.jpeg" alt="Temperature">
+  </div>
+
+  <div class="section">
+    <div class="section-content">
+      <h2>Acidity</h2>
+      <p id="acid-text"></p>
+    </div>
+    <img src="e.jpeg" alt="Acidity">
+  </div>
+
+  <div class="section">
+    <div class="section-content">
+      <h2>Salinity</h2>
+      <p id="sal-text"></p>
+    </div>
+    <img src="f.jpeg" alt="Salinity">
+  </div>
+
+  <div class="section">
+    <div class="section-content">
+      <h2>Seasonal Changes</h2>
+      <p id="season-text"></p>
+    </div>
+    <img src="g.jpeg" alt="Seasonal Changes">
+  </div>
+
+  <div class="section">
+    <div class="section-content">
+      <h2>Tides</h2>
+      <p id="tide-text"></p>
+    </div>
+    <img src="h.jpeg" alt="Tides">
+  </div>
+
+  <div class="section">
+    <div class="section-content">
+      <h2>Wind</h2>
+      <p id="wind-text"></p>
+    </div>
+    <img src="i.jpg" alt="Wind">
+  </div>
+
+  <div class="section">
+    <div class="section-content">
+      <h2>Dissolved Oxygen</h2>
+      <p id="oxy-text"></p>
+    </div>
+    <img src="j.png" alt="Dissolved Oxygen">
+  </div>
+
+  <!-- Chatbot toggle button -->
+  <div class="chatbot-toggle" onclick="toggleChat()">
+    🤖
+  </div>
+
+  <!-- Chatbot panel -->
+  <div class="chatbot" id="chatbot">
+    <h3>Aquaris AI</h3>
+    <label for="temp">Temperature (°C)</label>
+    <input type="number" id="temp" placeholder="Enter temperature">
+
+    <label for="acid">Acidity (pH)</label>
+    <input type="number" step="0.01" id="acid" placeholder="Enter pH">
+
+    <label for="condition">Condition</label>
+    <select id="condition">
+      <option>Migration Pattern</option>
+      <option>Species Distribution</option>
+      <option>Coral Bleaching</option>
+      <option>Healthy Ecosystem</option>
+      <option>Oil Spill Pattern Influence</option>
+    </select>
+
+    <button onclick="showAnalysis()">Analyze</button>
+
+    <div class="chat-output" id="chat-output">Input values to analyze.</div>
+  </div>
+
+  <script>
+    function toggleChat(){
+      const chat = document.getElementById('chatbot');
+      chat.style.display = chat.style.display === 'block' ? 'none' : 'block';
+    }
+
+   const texts = {
+      "General": {
+        temp: "Ocean temperature as a term applies to the temperature in the ocean at any depth. It can also apply specifically to the ocean temperatures that are not near the surface.The ocean temperature plays a crucial role in the global climate system, ocean currents and for marine habitats. It varies depending on depth, geographical location and season. Not only does the temperature differ in seawater, so does the salinity. Warm surface water is generally saltier than the cooler deep or polar waters.In polar regions, the upper layers of ocean water are cold and fresh.Deep ocean water is cold, salty water found deep below the surface of Earth's oceans. This water has a uniform temperature of around 0-3 °C.The ocean temperature also depends on the amount of solar radiation falling on its surface. In the tropics, with the Sun nearly overhead, the temperature of the surface layers can rise to over 32 °C. Near the poles the temperature in equilibrium with the sea ice is about −2 °C. ",
+        acid: "Ocean acidification is the ongoing decrease in the pH of the Earth's ocean. Between 1950 and 2020, the average pH of the ocean surface fell from approximately 8.15 to 8.05.Carbon dioxide emissions from human activities are the primary cause of ocean acidification, with atmospheric carbon dioxide (CO2) levels exceeding 422 ppm (as of 2024).CO2 from the atmosphere is absorbed by the oceans. This chemical reaction produces carbonic acid (H2CO3) which dissociates into a bicarbonate ion (HCO3-) and a hydrogen ion (H+). The presence of free hydrogen ions (H+) lowers the pH of the ocean, increasing acidity (this does not mean that seawater is acidic yet; it is still alkaline, with a pH higher than 8). Marine calcifying organisms, such as mollusks and corals, are especially vulnerable because they rely on calcium carbonate to build shells and skeletons.",
+        sal: "Ocean salinity refers to the concentration of dissolved salts in seawater, typically measured in parts per thousand (ppt or ‰). The average salinity of the world's oceans is about 35 ppt, meaning every 1,000 grams of seawater contains roughly 35 grams of dissolved salt. While sodium chloride (common table salt) is the most abundant salt, seawater contains a variety of dissolved minerals.Salinity is an important factor in determining many aspects of the chemistry of natural waters and of biological processes within it, and is a thermodynamic state variable that, along with temperature and pressure, governs physical characteristics like the density and heat capacity of the water. These in turn are important for understanding ocean currents and heat exchange with the atmosphere.",
+        season: "Spring is one of the seasons when the marine surface-floating biological community is the most diverse and abundant. In warm spring, due to increased light and nutrient availability, phytoplankton (Figure1)such as diatoms, dinoflagellates, and green algae proliferate rapidly.Summer is the peak season for marine surface-floating biological communities, with rising seawater temperaturesand maximum light intensity, providing ideal conditions for the growth of phytoplankton. Large diatomslikediatomaceous diatoms, chain diatoms, and spiral diatoms reach their peak during summer, forming extensive phytoplankton communities known as algal blooms.As autumn approaches, the composition of marine surface-floating biological communities begins to change. The temperature and light levels gradually decrease, leading to a slowdown in the growth of phytoplankton.",
+        tide: "Tides are the rise and fall of sea levels caused by the combined effects of the gravitational forces exerted by the Moon (and to a much lesser extent, the Sun) and are also caused by the Earth and Moon orbiting one another.Tides play a vital role in managing the depth and flow of water, allowing ships to sail comfortably near the shore. Ships may easily access the port by taking advantage of the water level and current at high tides.Wind and weather patterns can also have an impact on the water level. Strong offshore winds can carry water away from beaches, causing low tides to be exaggerated. Water can be pushed onto the coast by onshore breezes, making low tides less obvious.Many businesses, including shipping, fishing, and coastal engineering, rely on tidal knowledge. Tides may be hazardous as well. It is critical to understand whether the Tide is coming in or going out.When the Tide comes in, the entire beach might be submerged. Lifeboats are frequently required to rescue persons who are unaware that a high tide is approaching and might trap them.",
+        wind: "Wind is a major general oceanographic factor because it drives many of the processes that shape the ocean’s physical, chemical, and biological systems. When wind blows over the ocean surface, it transfers energy to the water, creating surface currents and waves. Through the Coriolis effect, these wind-driven currents form large-scale gyres that circulate water across ocean basins. Winds also cause Ekman transport, where surface water is moved at an angle to the wind, leading to upwelling of nutrient-rich deep water or downwelling of surface water. This process is vital for marine productivity, as upwelling zones support some of the world’s richest fisheries. In addition, wind-driven turbulence mixes the upper layers of the ocean, influencing the depth of the mixed layer, redistributing heat, and helping oxygen penetrate deeper waters. By enhancing evaporation, gas exchange, and heat transfer between the ocean and atmosphere, wind also plays a crucial role in regulating climate and weather patterns such as monsoons and El Niño. Thus, wind acts as a broad, overarching factor that links the physical, chemical, and biological dynamics of the ocean.",
+        oxy: "Dissolved oxygen is an important general oceanographic factor because it directly influences marine life, biogeochemical cycles, and ocean circulation. Oxygen enters the ocean mainly through exchange with the atmosphere and photosynthesis by phytoplankton, while it is consumed by respiration and decomposition of organic matter. Its concentration varies with depth—typically high near the surface due to atmospheric mixing and photosynthesis, lower at mid-depths where respiration dominates, and sometimes higher again in deep waters where circulation brings oxygen-rich water masses. This distribution of dissolved oxygen determines the habitability of marine environments, as low-oxygen zones (oxygen minimum zones) limit the survival of many organisms and affect nutrient cycling. In addition, oxygen plays a role in regulating redox conditions, which control the chemical forms of nutrients and trace metals. Because oxygen levels are linked to ocean circulation, temperature, and biological activity, they also serve as an indicator of broader ocean health and climate change impacts."
+      },
+      "Migration Pattern": {
+        temp: "Temperature is one of the strongest environmental cues controlling migration in marine organisms. Many species migrate seasonally to follow preferred temperature zones that optimize metabolic efficiency, growth, and reproduction. Whales, for instance, travel from nutrient-rich polar regions in summer to warmer tropical waters in winter for breeding, while sea turtles navigate thousands of kilometers guided partly by thermal gradients. Similarly, fish like tuna and mackerel adjust their migration to maintain themselves within a thermal comfort zone, as water that is too cold slows their metabolism and growth, while excessively warm waters cause stress and higher energy expenditure. Rising global sea surface temperatures are now altering these historic migration patterns; species are moving earlier in the season, extending their routes, or shifting toward higher latitudes and deeper waters to escape heat. This not only disrupts predator-prey synchrony—where predators arrive at feeding grounds out of sync with prey—but also causes cascading changes in ecosystems and fisheries, as traditional fishing grounds lose valuable stocks. Thus, temperature shapes not only the timing and distance of migration but also the survival and ecological roles of migratory species.",
+        acid: "While acidity does not directly dictate migratory routes in the same way temperature or salinity does, it has profound indirect effects by reshaping the food webs that migratory species depend upon. Ocean acidification, driven by rising atmospheric CO₂, reduces the survival of calcifying organisms such as pteropods, mollusks, and certain plankton species that form the base of marine food chains. Migratory predators like salmon, cod, and whales rely on these organisms directly or indirectly as food sources; when prey populations decline or shift geographically due to acidification stress, migratory species are forced to adjust their routes to find adequate nutrition. For example, studies have shown that in acidified regions, populations of shell-forming plankton decline, leading to reduced prey availability for fish schools, which in turn alters the migratory behavior of seabirds and marine mammals that depend on them. Additionally, acidification may impair the sensory abilities of some fish, reducing their capacity to navigate accurately across long distances. Over decades, these impacts could fundamentally reshape oceanic migration corridors, making them less predictable and more energy-demanding for marine species.",
+        sal: "Salinity gradients play a crucial role in controlling the migration of species that move between freshwater and marine environments during different life stages. Anadromous fish like salmon migrate from the ocean to freshwater rivers to spawn, while catadromous species like eels do the reverse, requiring precise navigation through estuarine salinity transitions. Estuaries with stable salinity gradients provide safe acclimatization zones, where organisms adjust their physiology before entering drastically different environments. However, fluctuations in salinity caused by heavy rainfall, glacial melt, river discharge, or human activities such as damming can disrupt these gradients, creating barriers to migration. For example, juvenile salmon require gradual exposure to increasing salinity before entering the ocean; sudden or extreme salinity shifts can impair osmoregulation, leading to higher mortality rates. Climate change is also altering salinity patterns globally, with some regions experiencing freshening due to ice melt and others becoming saltier due to evaporation. Such changes are already impacting migratory behaviors, forcing species to adapt migration routes or face population decline. Thus, salinity acts both as a physical pathway and a biological filter for successful migration.",
+        season: "Seasonal cycles of temperature, light, and nutrient availability strongly regulate migration across the marine biosphere. Many organisms migrate seasonally to coincide with periods of high food abundance, ensuring successful feeding and reproduction. For instance, whales migrate to high-latitude feeding grounds during summer when seasonal upwelling promotes plankton blooms, which fuel the abundance of krill and small fish. Likewise, sardines and anchovies migrate along coasts in sync with seasonal productivity, supporting large fisheries. Seabirds also migrate seasonally to take advantage of these prey-rich areas. Seasonal changes act as a natural calendar, guiding migration not just by food availability but also by breeding conditions; warmer or cooler seasons trigger reproductive behaviors in fish and turtles. However, disruptions to seasonal cycles due to climate change, such as altered monsoon timing, delayed plankton blooms, or unseasonal temperature spikes, can cause mismatches between migratory species and their food supply. This “phenological mismatch” reduces survival rates, breeding success, and population stability. Thus, seasonal cycles are integral to maintaining synchrony between species and ecosystems, and their disruption poses a serious threat to migratory patterns worldwide.",
+        tide: "Tides, caused by the gravitational pull of the moon and sun, create predictable cycles of water movement that many species have evolved to use as migratory cues. Coastal and estuarine species in particular synchronize their migrations with tidal rhythms. For example, juvenile fish often ride tidal currents into estuaries, which serve as nursery grounds, while crabs and shrimp migrate with tides to reach feeding and spawning habitats. Sea turtles also time their nesting behavior to specific tidal phases, ensuring their hatchlings have the best chance of reaching the ocean safely. Changes in tidal strength, height, or timing—whether caused by sea-level rise, storm surges, or human modifications of coastlines—disrupt these natural migration pathways. Additionally, some species rely on tidal flushing to carry them offshore or inland during critical life stages; without predictable tides, these migrations may fail, leading to population decline. Tides thus serve not just as passive water movement but as an active driver and regulator of marine migration.",
+        wind: "Wind indirectly shapes migration through its control of surface circulation, currents, and upwelling. Many migratory species, such as tuna, whales, and seabirds, follow nutrient-rich regions created by wind-driven upwelling, where deep, cold, nutrient-laden waters rise to the surface to fuel plankton growth. These areas, such as the Peru and California Currents, become biological hotspots that sustain entire migratory routes. When wind patterns change, as during El Niño events, upwelling weakens or collapses, leading to reduced food availability. This forces migratory species to either extend their journeys into less predictable areas or face food scarcity. Seabirds are among the most vulnerable, as their migratory patterns are tightly linked to wind-driven productivity zones. Additionally, wind can influence larval dispersal and juvenile drift patterns, altering how species establish and maintain migratory pathways across generations. Thus, wind acts as a hidden but powerful force shaping marine migration through food web productivity and current dynamics.",
+        oxy: "Dissolved oxygen is a fundamental requirement for aerobic marine life, and its distribution in the ocean has a significant influence on migration. Many species actively avoid hypoxic or anoxic waters, which create “barriers” in the ocean. Expanding oxygen minimum zones (OMZs), driven by warming and nutrient pollution, force species like tuna, swordfish, and zooplankton to migrate vertically into narrower oxygen-rich layers. This compression effect concentrates predators and prey in small areas, increasing competition and altering natural migration dynamics. In some cases, OMZs act as horizontal barriers, forcing species to detour around low-oxygen regions, lengthening migration routes and increasing energy costs. Furthermore, dissolved oxygen levels influence spawning migrations, as eggs and larvae are highly sensitive to oxygen depletion. Migratory species unable to access oxygen-rich breeding grounds may experience reproductive failures. As hypoxia expands globally, dissolved oxygen will increasingly determine not just where species migrate but whether they can successfully complete their life cycles at all."
+      },
+      "Species Distribution": {
+        temp: "Temperature is perhaps the most important determinant of species distribution in the ocean, as it directly affects physiological performance, metabolic rates, and reproductive success. Many species are adapted to specific thermal ranges; tropical organisms cannot survive in colder polar waters, while polar species collapse under thermal stress in warm waters. With global warming, isotherms (lines of equal temperature) are shifting toward the poles, and species distributions are following suit. Fish stocks once abundant in tropical waters are moving into subtropical and temperate zones, while Arctic and Antarctic species are losing habitat altogether. For example, cod, mackerel, and tuna are expanding into northern latitudes, altering fisheries and threatening local biodiversity. Temperature also affects vertical distribution; some species descend to cooler depths when surface waters warm. This redistribution not only changes local biodiversity but also creates novel species assemblages, where predators and prey may not have co-evolved, leading to instability in ecosystems. Thus, temperature dictates where species can live, breed, and feed, and climate-driven warming is reshaping marine distributions on a global scale.",
+        acid: "Acidity influences species distribution indirectly by reshaping ecosystems through chemical stress. Ocean acidification reduces carbonate availability, threatening calcifying organisms like corals, mollusks, and plankton. As these foundational species decline, the entire communities associated with them collapse or shift elsewhere. For example, coral reef fish distributions are declining as reefs degrade, while species that rely on shellfish for food or habitat are forced to migrate to less affected areas. Acidification also affects non-calcifiers by impairing sensory systems and altering predator-prey interactions, which in turn reshuffles species assemblages. The decline of calcifying plankton in some regions forces fish and higher predators to relocate, while jellyfish, which are more tolerant, often expand, dominating ecosystems once rich in biodiversity. Therefore, acidity not only influences where species can physically survive but also where they can find food, habitat, and ecological balance.",
+        sal: "Salinity strongly shapes species distribution because it determines the osmotic balance organisms must maintain to survive. Marine species can be broadly categorized as stenohaline (narrow tolerance) or euryhaline (wide tolerance), and their distribution reflects these tolerances. Stenohaline species, such as many open-ocean fish and invertebrates, are confined to stable salinity conditions, while euryhaline species such as mullets, anchovies, and some crustaceans thrive in estuaries where salinity fluctuates daily. Shifts in salinity patterns, whether from glacial melt, precipitation, or river runoff, alter these distributional boundaries. For instance, freshening of the Arctic Ocean due to ice melt is changing plankton and fish communities, while hypersaline regions caused by high evaporation, such as in semi-enclosed seas, support specialized organisms but exclude others. Human-induced salinity alterations, like damming rivers, also affect estuarine species, often pushing them into narrower habitats. Overall, salinity governs the zonation of marine species at local and global scales, influencing community structure and resilience.",
+        season: "Seasonal cycles regulate species distribution by dictating where food is abundant and when breeding conditions are optimal. Many fish and plankton species expand into temperate and polar waters in spring and summer, following seasonal phytoplankton blooms, and contract in winter when resources decline. Birds, whales, and other higher predators adjust their distribution accordingly, creating dynamic seasonal biodiversity hotspots. Disruptions to seasonal patterns, such as delayed spring blooms due to warming oceans or altered monsoon cycles, cause mismatches between species and their resources, leading to declines in distributional ranges. For example, seabird colonies have experienced mass breeding failures when fish distributions did not align with chick-rearing seasons. Seasonal migrations of species thus lead to temporary redistributions that maintain ecosystem productivity, but climate disruption is weakening this synchrony.",
+        tide: "Tidal patterns strongly influence the distribution of intertidal and nearshore species. Organisms in tidal zones are distributed vertically depending on their tolerance to desiccation, wave action, and submersion. For example, barnacles, mussels, algae, and crabs each occupy specific tidal heights, creating zonation patterns. Changes in tidal amplitude, frequency, or sea-level rise shift these zones, redistributing species either upward onto land or downward into deeper waters. Tides also influence larval dispersal; many fish and invertebrates rely on tidal currents to spread offspring to suitable habitats, meaning altered tidal flows can change settlement patterns and adult distributions. Thus, tides are both a physical and ecological driver of distribution, particularly in coastal ecosystems.",
+        wind: "Wind shapes species distribution primarily through upwelling and current generation. Regions with persistent wind-driven upwelling, such as the Benguela and Humboldt currents, support dense populations of plankton, fish, and top predators. These areas become global biodiversity and fisheries hotspots. When wind patterns shift, these productive zones weaken or move, redistributing species that rely on them. For example, during El Niño, weakened trade winds reduce upwelling in the eastern Pacific, causing anchovy, sardine, and seabird populations to decline or shift elsewhere. Wind also affects larval transport and dispersal, spreading species across wide ranges or, when winds are absent, restricting recruitment. Thus, wind variability strongly structures marine biodiversity patterns across entire regions.",
+        oxy: "Oxygen availability is a critical determinant of where species can live. Most marine organisms require oxygen-rich environments, and hypoxic zones act as uninhabitable “dead zones.” Species distributions therefore shift to oxygen-rich layers, typically closer to the surface or toward poles where waters are cooler and more oxygenated. Expanding oxygen minimum zones in tropical and subtropical waters are reducing habitable space for species like tuna and billfish, forcing them into narrower vertical and horizontal ranges. These compressed distributions increase competition and predation pressure, destabilizing ecosystems. Benthic communities are particularly vulnerable, as oxygen declines near the seafloor can cause mass die-offs, redistributing species toward shallower or more oxygenated habitats. Thus, dissolved oxygen acts as a defining boundary for species distributions globally."
+      },
+      "Coral Bleaching": {
+        temp: "Temperature is the single most critical factor driving coral bleaching, as even small increases in sea surface temperature above the seasonal maximum can stress corals. When water becomes too warm, the delicate symbiosis between corals and their zooxanthellae (algae that provide energy through photosynthesis) breaks down. Corals expel the algae, leading to the loss of color and energy reserves, a phenomenon known as bleaching. If thermal stress is short-lived, corals can recover, but prolonged or repeated exposure often leads to death. Mass bleaching events have been documented worldwide during heatwaves and El Niño events, devastating reefs in the Great Barrier Reef, Indian Ocean, and Caribbean. Rising global temperatures not only increase bleaching frequency but also reduce recovery windows between events, leaving reefs weakened and less resilient. Additionally, temperature extremes amplify disease outbreaks in corals, compounding mortality. Thus, warming seas caused by climate change represent the greatest long-term threat to coral reef survival.",
+        acid: "Acidity is a long-term driver that indirectly worsens bleaching impacts by weakening coral skeletons and reducing reef resilience. Ocean acidification, caused by rising atmospheric CO₂, lowers the pH of seawater and decreases carbonate ion availability, which corals need for calcification. While acidification itself does not always trigger bleaching, it reduces the ability of corals to recover after bleaching events. Acidified waters slow skeletal growth, making corals fragile and more likely to break, erode, or die after stress. Moreover, acidification affects zooxanthellae photosynthesis, reducing the energy available to corals, and may directly interfere with coral reproduction. Together, these processes mean that even if corals survive a thermal bleaching event, their ability to rebuild and maintain reef structures is compromised under acidified conditions. The combined effect of warming and acidification—sometimes called “the deadly duo”—poses a severe threat to the persistence of coral reef ecosystems.",
+        sal: "Salinity also plays an important role in coral health, and fluctuations can trigger bleaching-like stress. Corals thrive in stable salinity conditions typical of tropical marine waters (around 34–36 PSU). When heavy rainfall, river discharge, or flooding events suddenly lower salinity, corals experience osmotic stress that disrupts cellular processes and weakens their ability to retain zooxanthellae. Low-salinity events, especially near coastlines and estuaries, often cause localized bleaching or mass mortality. Conversely, highly saline waters, caused by evaporation in semi-enclosed seas, can also damage corals by stressing their physiology. Prolonged salinity fluctuations reduce reef resilience, making corals more vulnerable to other stressors such as warming and pollution. Since climate change is altering rainfall and freshwater discharge patterns, salinity-driven bleaching events are expected to become more frequent in vulnerable coastal reef systems.",
+        season: "Seasonal cycles of temperature and light strongly influence bleaching risks. In tropical regions, corals are naturally exposed to warmer water during summer months, but when seasonal peaks coincide with marine heatwaves, bleaching risk escalates. Seasonal predictability once allowed corals time to recover during cooler months; however, with climate change extending hot seasons, recovery periods are shortened or eliminated. This results in more frequent bleaching and cumulative damage over successive years. Seasonal changes in solar radiation also play a role, as high light intensifies thermal stress by overloading zooxanthellae photosynthetic systems. Additionally, altered seasonal rainfall patterns can compound bleaching through salinity fluctuations and sedimentation, further stressing corals. Thus, seasonal cycles no longer act as a buffer but increasingly as a stress amplifier for coral reefs.",
+        tide: "Tides influence bleaching primarily by modulating exposure and water circulation. Strong tidal flushing cools reef waters and brings fresh nutrients, which can help corals withstand heat stress. However, extreme low tides expose shallow corals to direct air, sunlight, and heat, causing localized bleaching and mortality. Prolonged exposure during unusually low tides can kill entire reef flats. Tidal variations also influence sediment transport, and excess sedimentation can smother corals or block light, indirectly exacerbating bleaching effects. Coastal developments that alter tidal flow reduce natural flushing, creating stagnant conditions that magnify thermal stress. In this way, tides act both as protective and harmful forces in coral bleaching dynamics.",
+        wind: "Wind affects bleaching risk by regulating surface mixing and circulation. Moderate winds mix surface waters, dispersing heat and lowering bleaching stress on reefs. Conversely, calm windless periods during heatwaves trap warm water at the surface, intensifying coral stress and triggering bleaching. On the other hand, storms driven by strong winds can physically damage corals but may also provide short-term relief by cooling water temperatures. Seasonal monsoon winds in regions like the Indian Ocean influence bleaching frequency by determining whether reef waters are well-mixed or stratified. As climate change alters wind patterns, reefs may face longer calm periods and weaker mixing, heightening their vulnerability to thermal bleaching.",
+        oxy: "Dissolved oxygen is essential for coral metabolism and resilience to stress. Corals in well-oxygenated waters are better able to cope with thermal extremes, while low-oxygen conditions—often caused by eutrophication, algal blooms, or microbial decomposition—exacerbate bleaching severity. During heat stress, corals already struggle with reduced photosynthetic efficiency, and oxygen depletion further restricts their survival. Hypoxic events can cause bleaching-like symptoms or mass mortality even in the absence of extreme heat. Additionally, microbial decomposition of organic matter around reefs during oil spills or runoff consumes oxygen, compounding coral stress. As warming oceans expand hypoxic zones, oxygen stress is expected to interact with bleaching, creating lethal combinations for coral reefs worldwide."
+      },
+      "Healthy Ecosystem": {
+        temp: "Temperature is a foundational factor for the maintenance of healthy marine ecosystems because it regulates metabolic rates, growth, reproduction, and species interactions. Stable temperatures support balanced predator-prey relationships, ensure successful breeding, and maintain nutrient cycling. When temperatures rise beyond optimal ranges, metabolic stress increases, leading to reduced growth and reproductive output for many species. Warming also causes shifts in species distributions, resulting in new species assemblages that can destabilize existing food webs. Coral reefs, kelp forests, and seagrass meadows are particularly vulnerable to temperature stress, with prolonged heat exposure triggering bleaching or die-offs that ripple through the ecosystem. In addition, temperature influences microbial activity, affecting nutrient recycling and the decomposition of organic matter. Extreme thermal events can therefore weaken the structural and functional integrity of ecosystems, reducing biodiversity and resilience. By controlling physiological limits, habitat suitability, and ecological interactions, temperature is a key determinant of whether marine ecosystems remain robust or deteriorate under environmental stress.",
+        acid: "Ocean acidity directly impacts ecosystem health by altering chemical conditions essential for life. Lower pH levels, caused by rising CO₂, impair calcification in corals, shellfish, and plankton, weakening reef and benthic ecosystems. Acidification also disrupts metabolic processes, behavior, and sensory functions in many fish species, affecting predator-prey interactions and survival. As foundation species like corals, mollusks, and plankton decline, entire food webs become destabilized, reducing biodiversity and ecosystem functionality. Acidified conditions can amplify other stressors, such as warming and hypoxia, compounding ecosystem degradation. Consequently, pH balance is central to maintaining structural complexity, species interactions, and the long-term resilience of marine ecosystems.",
+        sal: "Salinity shapes ecosystem health by controlling water density, circulation, and the osmotic environment in which marine organisms live. Stable salinity levels allow for predictable circulation patterns that transport nutrients, oxygen, and larvae, maintaining ecosystem productivity and connectivity. Fluctuations in salinity, whether from freshwater influx, drought, or human interventions like damming, can stress stenohaline species and disrupt local biodiversity. For example, estuarine and mangrove ecosystems rely on moderate salinity gradients to support diverse communities of fish, crustaceans, and mollusks; sudden salinity changes can lead to mortality, reduced reproduction, and altered food webs. Salinity also affects biogeochemical cycles, influencing nutrient availability and decomposition rates. Maintaining balanced salinity is thus critical for sustaining species richness, ecological interactions, and resilience to environmental disturbances.",
+        season: "Seasonal cycles regulate the timing of primary production, reproduction, and nutrient availability, all of which are vital for healthy ecosystems. Phytoplankton blooms, triggered by seasonal light and temperature changes, form the base of food webs, supporting fish, birds, and marine mammals. Seasonal reproductive migrations ensure population sustainability for many species. Disruption of seasonal cycles—through climate change, shifting monsoon patterns, or altered upwelling—can desynchronize these processes, causing mismatches between predators and prey, reduced recruitment, and localized population declines. Ecosystems that rely on predictable seasonal rhythms, such as coastal fisheries and polar food webs, are particularly sensitive. Maintaining intact seasonal cycles is therefore essential for sustaining productivity, diversity, and ecological balance.",
+        tide: "Tides are critical for healthy coastal and intertidal ecosystems, facilitating nutrient and oxygen exchange, sediment transport, and habitat connectivity. Organisms in mangroves, estuaries, and intertidal zones rely on predictable tidal cycles for feeding, reproduction, and dispersal. Tides also help flush pollutants and maintain water quality, supporting biodiversity and ecosystem services. Alterations in tidal amplitude or frequency, due to sea-level rise or human interventions, can lead to habitat loss, sedimentation changes, and reduced ecosystem productivity. For example, disrupted tidal flows in estuaries can prevent larval dispersal, leading to reduced recruitment and population declines. By controlling water movement and connectivity, tides maintain the structural and functional integrity of marine ecosystems.",
+        wind: "Wind drives surface circulation, mixing, and upwelling, which are essential for nutrient distribution and primary productivity. Wind-driven upwelling zones support high-density populations of plankton, fish, and higher predators, forming biodiversity hotspots that sustain healthy ecosystems. Changes in wind patterns can alter the location and intensity of these productive zones, affecting the availability of food for migratory and resident species. Wind also enhances oxygenation of surface waters, supporting respiration and ecosystem metabolism. In coastal ecosystems, wind influences wave energy, which shapes habitat structure, sediment deposition, and water quality. Stable wind patterns are therefore integral for maintaining nutrient flows, habitat conditions, and species interactions that underpin ecosystem health.",
+        oxy: "Dissolved oxygen is fundamental for aerobic life and overall ecosystem functionality. Adequate oxygen supports respiration, decomposition, nutrient cycling, and trophic interactions. Low oxygen zones, or hypoxic areas, lead to “dead zones” where sensitive species die or migrate away, resulting in loss of biodiversity and trophic collapse. Oxygen depletion also slows microbial degradation, disrupting nutrient recycling and organic matter turnover. In benthic communities, low oxygen causes mass die-offs of invertebrates, altering sediment dynamics and ecosystem structure. Ecosystem resilience is therefore closely tied to oxygen availability, with well-oxygenated waters sustaining complex, productive, and stable communities across trophic levels."
+      },
+      "Oil Spill Pattern Influence": {
+        temp: "Temperature strongly influences the behavior, spread, and ecological impact of oil spills. In warmer waters, lighter hydrocarbons evaporate more quickly, while heavier fractions remain on the surface, creating persistent slicks. High water temperatures reduce oil viscosity, allowing it to spread faster over larger areas, affecting wider ecosystems. Conversely, in colder waters, oil becomes more viscous, sinking or forming tar balls that smother benthic habitats. Temperature also affects the biological breakdown of oil; microbial degradation rates increase in warmer conditions, accelerating partial recovery, but excessive heat can stress marine organisms simultaneously, reducing their ability to withstand contamination. Additionally, temperature interacts with other stressors, such as hypoxia or acidification, amplifying ecological damage. Warm tropical waters, for example, are particularly vulnerable because diverse coral reefs and fish communities face simultaneous thermal stress and oil contamination, magnifying mortality rates.",
+        acid: "Ocean acidity can exacerbate the toxicity of oil spills. Acidified waters can alter the chemical structure and solubility of hydrocarbons, increasing bioavailability to marine organisms and intensifying toxic effects. Lower pH also stresses marine organisms by impairing metabolic and sensory functions, making them less capable of surviving oil exposure. Acidification further hampers microbial communities that degrade oil, slowing natural remediation processes. For example, in acidic coastal waters, mollusks, plankton, and fish exhibit higher mortality rates when exposed to hydrocarbons than in neutral pH conditions. Thus, acidification interacts synergistically with oil contamination, compounding ecological damage and delaying ecosystem recovery.",
+        sal: "Salinity influences oil solubility, emulsification, and dispersion, affecting both its environmental persistence and toxicity. High-salinity seawater tends to promote oil-water emulsification, creating thick, persistent “mousse” that adheres to marine surfaces and sediments, complicating cleanup efforts. In contrast, lower salinity waters, such as estuaries and river mouths, can facilitate faster spreading but may increase bioavailability of toxic components to aquatic life. Salinity gradients also affect organism vulnerability; estuarine species accustomed to moderate salinity are often more sensitive to hydrocarbon contamination, suffering higher mortality. Fluctuating salinity combined with oil exposure can reduce osmoregulatory efficiency in fish and invertebrates, leading to stress and mortality. Therefore, salinity directly shapes both the physical behavior of spilled oil and its ecological consequences across diverse habitats.",
+        season: "Seasonal cycles influence the spread, impact, and persistence of oil spills. Storms, monsoons, or high-wave seasons can disperse oil over wide areas, contaminating coastlines, mangroves, and coral reefs far from the spill source. Conversely, calm seasons may allow oil slicks to persist at the surface for longer periods, increasing exposure time for marine organisms. Seasonal variations in water temperature, productivity, and currents also affect the vulnerability of ecosystems; during periods of high biological activity, oil contamination can devastate reproductive cycles, larval dispersal, and primary productivity. For example, fish spawning seasons coinciding with oil spills can result in massive recruitment failures, affecting population sustainability. Therefore, seasonal timing plays a critical role in determining both the ecological footprint and the long-term consequences of oil spills.",
+        tide: "Tides are a key factor in oil spill dynamics, particularly in coastal and intertidal ecosystems. High tides can carry oil into estuaries, mangroves, and salt marshes, where it becomes trapped in sediments and remains for years, severely impacting benthic and nursery habitats. Low tides can expose intertidal organisms directly to oil contamination, causing immediate mortality. Tidal currents also facilitate oil transport along coastlines, spreading pollutants over wide areas or into protected habitats. Altered tidal regimes, due to sea-level rise or coastal development, may exacerbate the impact by changing oil deposition patterns. By controlling water movement, tidal cycles largely determine which ecosystems are most affected and the extent to which cleanup and natural recovery are possible.",
+        wind: "Wind is the primary driver of oil slick movement on the ocean surface. Strong winds can rapidly push oil toward coasts, islands, or sensitive habitats, increasing the area of impact. Winds also fragment slicks into smaller patches, which may temporarily reduce surface coverage but spread contaminants across a broader range. Calm wind conditions, on the other hand, allow thick, concentrated slicks to persist, increasing exposure for surface-dwelling organisms, seabirds, and coral reefs. Seasonal and regional wind variability, such as trade winds or storm systems, therefore plays a major role in determining the trajectory, speed, and intensity of oil spill impacts. Effective spill response strategies must consider wind patterns to predict affected areas and prioritize intervention.",
+        oxy: "Dissolved oxygen plays a critical role in mediating the ecological effects of oil spills. Microbial degradation of hydrocarbons consumes large amounts of oxygen, often creating hypoxic zones in the vicinity of spills. These oxygen-depleted areas exacerbate mortality for fish, invertebrates, and benthic organisms already stressed by hydrocarbons. Low oxygen levels also reduce the capacity of ecosystems to recover naturally, as key species fail to survive or reproduce in hypoxic conditions. Furthermore, hypoxia interacts with oil toxicity, making even sub-lethal hydrocarbon concentrations lethal in low-oxygen environments. Coastal and estuarine ecosystems, where oxygen levels are already variable, are especially vulnerable, highlighting the combined importance of oxygen availability and oil contamination for ecosystem health."
+      }
+    };
+
+
+    function updateSections(){
+      let condition = document.getElementById("main-topic").value;
+      document.getElementById("temp-text").innerText = texts[condition].temp;
+      document.getElementById("acid-text").innerText = texts[condition].acid;
+      document.getElementById("sal-text").innerText = texts[condition].sal;
+      document.getElementById("season-text").innerText = texts[condition].season;
+      document.getElementById("tide-text").innerText = texts[condition].tide;
+      document.getElementById("wind-text").innerText = texts[condition].wind;
+      document.getElementById("oxy-text").innerText = texts[condition].oxy;
+    }
+
+    function showAnalysis(){
+      let temp = parseFloat(document.getElementById("temp").value) || 0;
+      let acid = parseFloat(document.getElementById("acid").value) || 7;
+      let cond = document.getElementById("condition").value;
+
+      let insight = "";
+
+      if(cond === "Migration Pattern"){
+        if(temp < 10) insight += "Cold temperatures slow migration, altering predator-prey timing.\n";
+        else if(temp > 28) insight += "High temperatures may cause earlier migration or habitat shifts.\n";
+        else insight += "Temperature supports normal migration patterns.\n";
+
+        if(acid < 7.9) insight += "Low pH reduces prey availability for migratory species.\n";
+        else if(acid > 8.2) insight += "High pH may alter navigational cues.\n";
+        else insight += "pH is suitable for normal migration.\n";
+      }
+      else if(cond === "Coral Bleaching"){
+        if(temp > 30) insight += "High temperature increases coral bleaching risk.\n";
+        else insight += "Temperature within tolerable range for corals.\n";
+
+        if(acid < 8.1) insight += "Acidification weakens coral skeletons and resilience.\n";
+        else insight += "pH is favorable for coral health.\n";
+      }
+      else if(cond === "Species Distribution"){
+        if(temp < 10 || temp > 28) insight += "Temperature shifts may cause species to move to new regions.\n";
+        else insight += "Temperature supports current species distribution.\n";
+
+        if(acid < 7.9) insight += "Acidification may disrupt ecosystem balance.\n";
+        else insight += "pH is suitable for species survival.\n";
+      }
+      else if(cond === "Healthy Ecosystem"){
+        if(temp > 28) insight += "High temperature can stress species and destabilize ecosystems.\n";
+        else insight += "Temperature is supporting ecosystem stability.\n";
+
+        if(acid < 8) insight += "Low pH may reduce calcifying species, affecting food webs.\n";
+        else insight += "pH levels are supportive of a healthy ecosystem.\n";
+      }
+      else if(cond === "Oil Spill Impact"){
+        insight += "Temperature, pH, and oxygen levels affect oil toxicity, persistence, and recovery.\n";
+      }
+
+      document.getElementById("chat-output").innerText = `Analysis for ${cond}:\n${insight}`;
+    }
+
+    updateSections();
+  </script>
+</body>
+</html>

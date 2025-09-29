@@ -132,7 +132,7 @@
     </footer>
 
     <script>
-        const API_ENDPOINT = 'http://127.0.0.1:5000/api/analyze_spill';
+        const API_ENDPOINT = 'https://aquarisaibackend.onrender.com/api/analyze_spill';
 
         // Get DOM Elements
         const imageUpload = document.getElementById('imageUpload');
@@ -220,7 +220,7 @@
 
             } catch (error) {
                 console.error('Fetch error:', error);
-                statusMessage.textContent = 'A network error occurred. Check if the Flask server is running on http://127.0.0.1:5000.';
+                statusMessage.textContent = 'A network error occurred.';
                 statusMessage.className = 'text-red-500';
             } finally {
                 predictBtn.disabled = false;

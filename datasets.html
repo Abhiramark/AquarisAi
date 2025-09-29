@@ -27,47 +27,47 @@ input[type=file] { color: white; }
 <body>
 
 <header class="fixed top-0 left-0 w-full bg-gray-900 bg-opacity-90 backdrop-blur-sm z-50 border-b border-gray-700">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center relative">
-        <a href="index.html" title="Back to Main Page"
-           class="p-2 rounded-full hover:bg-gray-700 transition absolute left-4">
-            <svg class="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-            </svg>
-        </a>
-        <div class="flex-grow text-center font-bold text-xl text-cyan-400">
-            Aquaris AI - Datasets
-        </div>
-    </div>
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center relative">
+        <a href="index.html" title="Back to Main Page"
+           class="p-2 rounded-full hover:bg-gray-700 transition absolute left-4">
+            <svg class="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>
+        </a>
+        <div class="flex-grow text-center font-bold text-xl text-cyan-400">
+            Aquaris AI - Datasets
+        </div>
+    </div>
 </header>
 
 <main class="pt-20 container"> 
-    <h2 class="text-2xl font-bold mb-4 text-cyan-400">Available Datasets</h2>
-    <div id="dataset-list" class="space-y-2"></div>
+    <h2 class="text-2xl font-bold mb-4 text-cyan-400">Available Datasets</h2>
+    <div id="dataset-list" class="space-y-2"></div>
 
-    <h2 class="text-2xl font-bold mt-8 mb-4 text-cyan-400">Add a Dataset or ZIP</h2>
-    <div class="flex items-center p-4 bg-gray-800 rounded-lg">
-        <input type="file" id="fileInput" accept=".csv,.json,.zip" multiple class="flex-grow file:mr-4 file:py-2 file:px-4
-            file:rounded-full file:border-0
-            file:text-sm file:font-semibold
-            file:bg-cyan-500 file:text-white
-            hover:file:bg-cyan-600"/>
-        <button id="uploadBtn" class="bg-cyan-500 px-4 py-2 rounded font-semibold hover:bg-cyan-600 ml-4">Upload</button>
-    </div>
+    <h2 class="text-2xl font-bold mt-8 mb-4 text-cyan-400">Add a Dataset or ZIP</h2>
+    <div class="flex items-center p-4 bg-gray-800 rounded-lg">
+        <input type="file" id="fileInput" accept=".csv,.json,.zip" multiple class="flex-grow file:mr-4 file:py-2 file:px-4
+            file:rounded-full file:border-0
+            file:text-sm file:font-semibold
+            file:bg-cyan-500 file:text-white
+            hover:file:bg-cyan-600"/>
+        <button id="uploadBtn" class="bg-cyan-500 px-4 py-2 rounded font-semibold hover:bg-cyan-600 ml-4">Upload</button>
+    </div>
 
-    <div id="message" class="mt-4 text-sm text-gray-400"></div>
+    <div id="message" class="mt-4 text-sm text-gray-400"></div>
 
-    <div class="dataset-viewer">
-        <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
-            <h3 class="text-xl font-semibold text-gray-300" id="viewerTitle">Dataset Viewer</h3>
-            <button id="downloadBtn" class="hidden bg-green-600 px-4 py-2 rounded font-semibold hover:bg-green-700 text-white text-sm">
-                Download File
-            </button>
-        </div>
-        
-        <div id="datasetTableContainer" class="max-h-[500px] overflow-auto">
-            <p class="text-gray-500 p-4 text-center">Click on a dataset to view its full content.</p>
-        </div>
-    </div>
+    <div class="dataset-viewer">
+        <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
+            <h3 class="text-xl font-semibold text-gray-300" id="viewerTitle">Dataset Viewer</h3>
+                        <button id="downloadBtn" class="hidden bg-green-600 px-4 py-2 rounded font-semibold hover:bg-green-700 text-white text-sm">
+                Download File
+            </button>
+        </div>
+        
+        <div id="datasetTableContainer" class="max-h-[500px] overflow-auto">
+            <p class="text-gray-500 p-4 text-center">Click on a dataset to view its full content.</p>
+        </div>
+    </div>
 </main>
 
 <script>
@@ -79,141 +79,163 @@ const datasetTableContainer = document.getElementById('datasetTableContainer');
 const viewerTitle = document.getElementById('viewerTitle');
 const downloadBtn = document.getElementById('downloadBtn');
 
+const RAILWAY_BACKEND_URL = 'https://aquarisai-production.up.railway.app'; // <--- GLOBAL URL CONSTANT
 const MAX_ROWS_TO_RENDER = 500; // Safety limit to prevent browser crashes on large files
 
 // --- DATA PARSING AND TABLE GENERATION FUNCTIONS ---
 
 /**
- * Parses raw file content and generates a full HTML table.
- */
+ * Parses raw file content and generates a full HTML table.
+ */
 function displayFullDataset(filename, text) {
-    let headers = [];
-    let allRows = []; 
-    let rowsToDisplay = [];
-    let totalRowCount = 0;
+    let headers = [];
+    let allRows = []; 
+    let rowsToDisplay = [];
+    let totalRowCount = 0;
 
-    try {
-        if (filename.toLowerCase().endsWith('.csv')) {
-            // Use regex for robust line splitting across different OS line endings
-            const lines = text.split(/\r?\n/).filter(l => l.trim());
-            if (lines.length === 0) throw new Error("File is empty.");
-            
-            // 1. Get Headers
-            headers = lines[0].split(',').map(h => h.trim());
-            
-            // 2. Get All Rows
-            allRows = lines.slice(1).map(line => {
-                const values = line.split(',');
-                // Ensure every row has the same number of columns as headers
-                return values.map(v => v.trim()); 
-            }).filter(row => row.length === headers.length);
+    try {
+        if (filename.toLowerCase().endsWith('.csv')) {
+            // Use regex for robust line splitting across different OS line endings
+            const lines = text.split(/\r?\n/).filter(l => l.trim());
+            if (lines.length === 0) throw new Error("File is empty.");
+            
+            // 1. Get Headers
+            headers = lines[0].split(',').map(h => h.trim());
+            
+            // 2. Get All Rows
+            allRows = lines.slice(1).map(line => {
+                const values = line.split(',');
+                // Ensure every row has the same number of columns as headers
+                return values.map(v => v.trim()); 
+            }).filter(row => row.length === headers.length);
 
-            totalRowCount = allRows.length;
-            
-        } else if (filename.toLowerCase().endsWith('.json')) {
-            const json = JSON.parse(text);
-            if (json.length === 0) throw new Error("JSON file is empty.");
+            totalRowCount = allRows.length;
+            
+        } else if (filename.toLowerCase().endsWith('.json')) {
+            const json = JSON.parse(text);
+            if (json.length === 0) throw new Error("JSON file is empty.");
 
-            // 1. Get Headers (all unique keys from all objects)
-            const allKeys = new Set();
-            json.forEach(obj => {
-                Object.keys(obj).forEach(key => allKeys.add(key));
-            });
-            headers = Array.from(allKeys);
-            
-            // 2. Get All Rows
-            allRows = json.map(obj => {
-                return headers.map(header => {
-                    const value = obj[header];
-                    // Handle null/undefined values
-                    return value === undefined || value === null ? '' : String(value);
-                });
-            });
-            totalRowCount = allRows.length;
+            // 1. Get Headers (all unique keys from all objects)
+            const allKeys = new Set();
+            json.forEach(obj => {
+                Object.keys(obj).forEach(key => allKeys.add(key));
+            });
+            headers = Array.from(allKeys);
+            
+            // 2. Get All Rows
+            allRows = json.map(obj => {
+                return headers.map(header => {
+                    const value = obj[header];
+                    // Handle null/undefined values
+                    return value === undefined || value === null ? '' : String(value);
+                });
+            });
+            totalRowCount = allRows.length;
 
-        } else {
-            throw new Error(`File type not supported for viewing: ${filename.split('.').pop().toUpperCase()}.`);
-        }
-        
-        if (totalRowCount === 0) throw new Error("No data rows found.");
+        } else {
+            throw new Error(`File type not supported for viewing: ${filename.split('.').pop().toUpperCase()}.`);
+        }
+        
+        if (totalRowCount === 0) throw new Error("No data rows found.");
 
-        // Apply display limit for performance
-        rowsToDisplay = allRows.slice(0, MAX_ROWS_TO_RENDER);
+        // Apply display limit for performance
+        rowsToDisplay = allRows.slice(0, MAX_ROWS_TO_RENDER);
 
-        // --- Generate HTML Table ---
-        let tableHtml = '<table><thead><tr>';
-        
-        // Headers
-        tableHtml += headers.map(h => `<th>${h}</th>`).join('');
-        tableHtml += '</tr></thead><tbody>';
+        // --- Generate HTML Table ---
+        let tableHtml = '<table><thead><tr>';
+        
+        // Headers
+        tableHtml += headers.map(h => `<th>${h}</th>`).join('');
+        tableHtml += '</tr></thead><tbody>';
 
-        // Rows
-        tableHtml += rowsToDisplay.map(row => {
-            return '<tr>' + row.map(cell => `<td>${cell}</td>`).join('') + '</tr>';
-        }).join('');
-        
-        tableHtml += '</tbody></table>';
-        
-        // Update DOM
-        datasetTableContainer.innerHTML = tableHtml;
-        viewerTitle.textContent = `Viewing: ${filename} (${totalRowCount} total rows)`;
-        
-        let displayMessage = `Full dataset content loaded for ${filename}.`;
-        if (totalRowCount > MAX_ROWS_TO_RENDER) {
-            displayMessage = `Dataset loaded. Display is **limited to the first ${MAX_ROWS_TO_RENDER} rows** for performance. Total rows: ${totalRowCount}.`;
-        }
+        // Rows
+        tableHtml += rowsToDisplay.map(row => {
+            return '<tr>' + row.map(cell => `<td>${cell}</td>`).join('') + '</tr>';
+        }).join('');
+        
+        tableHtml += '</tbody></table>';
+        
+        // Update DOM
+        datasetTableContainer.innerHTML = tableHtml;
+        viewerTitle.textContent = `Viewing: ${filename} (${totalRowCount} total rows)`;
+        
+        let displayMessage = `Full dataset content loaded for ${filename}.`;
+        if (totalRowCount > MAX_ROWS_TO_RENDER) {
+            displayMessage = `Dataset loaded. Display is **limited to the first ${MAX_ROWS_TO_RENDER} rows** for performance. Total rows: ${totalRowCount}.`;
+        }
 
-        message.textContent = displayMessage;
-        
-        // Show Download Button
-        downloadBtn.onclick = () => handleDownload(filename);
-        downloadBtn.classList.remove('hidden');
+        message.textContent = displayMessage;
+        
+        // Show Download Button
+        downloadBtn.onclick = () => handleDownload(filename);
+        downloadBtn.classList.remove('hidden');
 
 
-    } catch (err) {
-        console.error("Data Parsing Error:", err);
-        
-        let errorMessage = err.message;
-        // Specific check for the user-reported error on large files
-        if (errorMessage.includes("Invalid string length") || errorMessage.includes("Maximum call stack size exceeded")) {
-             errorMessage = `Critical error: File is likely too large (${text.length} chars) for the browser to process. Please use the Download button for the full file.`;
-        }
+    } catch (err) {
+        console.error("Data Parsing Error:", err);
+        
+        let errorMessage = err.message;
+        // Specific check for the user-reported error on large files
+        if (errorMessage.includes("Invalid string length") || errorMessage.includes("Maximum call stack size exceeded")) {
+             errorMessage = `Critical error: File is likely too large (${text.length} chars) for the browser to process. Please use the Download button for the full file.`;
+        }
 
-        viewerTitle.textContent = "Dataset Viewer";
-        downloadBtn.classList.add('hidden');
-        datasetTableContainer.innerHTML = `<p class="text-red-400 p-4 text-center">Error: ${errorMessage}</p>`;
+        viewerTitle.textContent = "Dataset Viewer";
+        downloadBtn.classList.add('hidden');
+        datasetTableContainer.innerHTML = `<p class="text-red-400 p-4 text-center">Error: ${errorMessage}</p>`;
         message.textContent = `Error opening ${filename}: ${errorMessage}`;
-    }
+    }
 }
 
 /**
- * Handles the file download process.
- */
+ * Handles the file download process.
+ */
 function handleDownload(filename) {
-    const encodedFilename = encodeURIComponent(filename); 
-    const downloadUrl ='https://aquarisai-production.up.railway.app/api/datasets/${encodedFilename}';
-    
-    // Create a temporary anchor element to trigger the download
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = filename; // Suggest the original filename
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    message.textContent = `Download started for ${filename}.`;
+    const encodedFilename = encodeURIComponent(filename); 
+    // FIX: Corrected URL to use backticks and point to the dedicated download route
+    const downloadUrl = `${RAILWAY_BACKEND_URL}/api/datasets/download/${encodedFilename}`;
+    
+    // Create a temporary anchor element to trigger the download
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = filename; // Suggest the original filename
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    message.textContent = `Download started for ${filename}.`;
 }
 
 // --- FILE LISTING AND FETCHING ---
 
 // Adds a persistent or newly uploaded dataset to list (for single files or ZIPs)
 function addDatasetToList(name) {
-  const item = document.createElement('div');
-  item.className = 'dataset-item bg-gray-700';
-  item.textContent = name;
-  item.onclick = () => handleItemClick(name); // Handler for fetching content
-  datasetList.appendChild(item);
+    // MODIFIED: Added flex classes for side-by-side layout of name and download button
+    const item = document.createElement('div');
+    item.className = 'dataset-item bg-gray-700 flex justify-between items-center';
+
+    // 1. File Name (clickable for viewer)
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = name;
+    // Using the original click handler logic
+    nameSpan.onclick = () => handleItemClick(name); 
+    nameSpan.className = 'flex-grow cursor-pointer hover:text-cyan-300 transition';
+    
+    // 2. Download Link (for direct download)
+    const downloadLink = document.createElement('a');
+    const encodedFilename = encodeURIComponent(name); 
+    
+    // Set the href to the new dedicated download API route
+    downloadLink.href = `${RAILWAY_BACKEND_URL}/api/datasets/download/${encodedFilename}`;
+    downloadLink.textContent = 'Download';
+    downloadLink.target = '_blank'; // Opens in new tab
+    downloadLink.className = 'bg-cyan-500 text-white text-sm px-3 py-1 rounded hover:bg-cyan-600 transition ml-4';
+
+    item.appendChild(nameSpan);
+    item.appendChild(downloadLink);
+    datasetList.appendChild(item);
 }
+
 
 // Adds an extracted file from ZIP to list (content is ready for display)
 function addZippedDatasetToList(name, content) {
@@ -265,8 +287,8 @@ async function handleItemClick(filename) {
         // Use URL-encoding to handle spaces/special characters in filenames
         const encodedFilename = encodeURIComponent(filename); 
         
-        // Fetch file content from the backend
-        const response = await fetch('https://aquarisai-production.up.railway.app/api/datasets/${encodedFilename}')
+        // FIX: Corrected URL to use backticks (`) and the constant
+        const response = await fetch(`${RAILWAY_BACKEND_URL}/api/datasets/${encodedFilename}`)
         
         if (!response.ok) {
              throw new Error(`Failed to fetch file: ${response.status} (${response.statusText}). Check server logs.`);
@@ -284,17 +306,17 @@ async function handleItemClick(filename) {
 
     } catch(err) {
         console.error("Fetch/Parse Error:", err);
-        
-        let errorMessage = err.message;
-        // Improved error reporting for large file issues
-        if (errorMessage.includes("Invalid string length") || errorMessage.includes("Maximum call stack size exceeded")) {
-             errorMessage = `Critical error: The file is too large for the browser to process. Please use the Download button for the full file.`;
-        }
+        
+        let errorMessage = err.message;
+        // Improved error reporting for large file issues
+        if (errorMessage.includes("Invalid string length") || errorMessage.includes("Maximum call stack size exceeded")) {
+             errorMessage = `Critical error: The file is too large for the browser to process. Please use the Download button for the full file.`;
+        }
 
-        // Reset view when error occurs
-        viewerTitle.textContent = "Dataset Viewer";
-        downloadBtn.classList.add('hidden');
-        datasetTableContainer.innerHTML = `<p class="text-red-400 p-4 text-center">Error opening ${filename}: ${errorMessage}</p>`;
+        // Reset view when error occurs
+        viewerTitle.textContent = "Dataset Viewer";
+        downloadBtn.classList.add('hidden');
+        datasetTableContainer.innerHTML = `<p class="text-red-400 p-4 text-center">Error opening ${filename}: ${errorMessage}</p>`;
         message.textContent = `Error opening ${filename}: ${errorMessage}`;
     }
 }
@@ -306,7 +328,8 @@ async function fetchFileList() {
     message.textContent = "Loading available datasets...";
     datasetList.innerHTML = "";
     try {
-        const response = await fetch('https://aquarisai-production.up.railway.app/api/datasets/list')
+        // FIX: Corrected URL to use backticks (`) and the constant
+        const response = await fetch(`${RAILWAY_BACKEND_URL}/api/datasets/list`)
         if (!response.ok) throw new Error("Failed to connect to backend to retrieve file list.");
         
         const files = await response.json();
@@ -317,7 +340,7 @@ async function fetchFileList() {
         }
 
         files.forEach(filename => {
-            addDatasetToList(filename); // Add to the list with click handler
+            addDatasetToList(filename); // Add to the list with click handler AND download link
         });
         message.textContent = `${files.length} datasets loaded from server. Click a file name to view its full data.`;
 
@@ -336,7 +359,8 @@ async function handleFile(file) {
     
   try {
     // STEP 1: Upload to Flask backend
-    const response = await fetch('https://aquarisai-production.up.railway.app/api/datasets',{
+    // FIX: Corrected URL to use backticks (`) and the constant
+    const response = await fetch(`${RAILWAY_BACKEND_URL}/api/datasets`,{
       method: 'POST',
       body: formData
     });

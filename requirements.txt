@@ -1,9 +1,10 @@
 Flask
-Flask-CORS
-gunicorn
-tensorflow
-numpy
+flask-cors
+pymongo
+python-dotenv
 pandas
-scikit-learn
-Pillow
-joblib
+numpy
+tensorflow
+scikit-learn # joblib is often used with scikit-learn models
+Pillow # PIL is imported from here
+gunicorn # Needed for web server on Railway

@@ -132,145 +132,156 @@
     </footer>
 
     <script>
-        const API_ENDPOINT = 'https://aquarisai-production.up.railway.app/api/analyze_spill';
+        const API_ENDPOINT = 'https://aquarisai-production.up.railway.app/api/analyze_spill';
 
-        // Get DOM Elements
-        const imageUpload = document.getElementById('imageUpload');
-        const imagePreview = document.getElementById('imagePreview');
-        const previewPlaceholder = document.getElementById('previewPlaceholder');
-        const predictBtn = document.getElementById('predictBtn');
-        const statusMessage = document.getElementById('statusMessage');
-        const resultsDiv = document.getElementById('results');
-        const detectionStatusContainer = document.getElementById('detectionStatusContainer');
-        const detectionStatus = document.getElementById('detectionStatus');
-        const envSummary = document.getElementById('envSummary');
-        const forecastContainer = document.getElementById('forecastContainer');
-        const forecastTableBody = document.getElementById('forecastTableBody');
-        const growthSummary = document.getElementById('growthSummary');
+        // Get DOM Elements
+        const imageUpload = document.getElementById('imageUpload');
+        const imagePreview = document.getElementById('imagePreview');
+        const previewPlaceholder = document.getElementById('previewPlaceholder');
+        const predictBtn = document.getElementById('predictBtn');
+        const statusMessage = document.getElementById('statusMessage');
+        const resultsDiv = document.getElementById('results');
+        const detectionStatusContainer = document.getElementById('detectionStatusContainer');
+        const detectionStatus = document.getElementById('detectionStatus');
+        const envSummary = document.getElementById('envSummary');
+        const forecastContainer = document.getElementById('forecastContainer');
+        const forecastTableBody = document.getElementById('forecastTableBody');
+        const growthSummary = document.getElementById('growthSummary');
+        const latitudeInput = document.getElementById('latitude'); // Get the latitude input
 
 
-        // 1. Image Preview and Base64 Conversion
-        imageUpload.addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            if (file) {
-                imagePreview.src = URL.createObjectURL(file);
-                imagePreview.style.display = 'block';
-                previewPlaceholder.style.display = 'none';
-            } else {
-                imagePreview.style.display = 'none';
-                previewPlaceholder.style.display = 'block';
-            }
-        });
+        // 1. Image Preview and Base64 Conversion
+        imageUpload.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                imagePreview.src = URL.createObjectURL(file);
+                imagePreview.style.display = 'block';
+                previewPlaceholder.style.display = 'none';
+            } else {
+                imagePreview.style.display = 'none';
+                previewPlaceholder.style.display = 'block';
+            }
+        });
 
-        function fileToBase64(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result); 
-                reader.onerror = error => reject(error);
-                reader.readAsDataURL(file);
-            });
-        }
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result); 
+                reader.onerror = error => reject(error);
+                reader.readAsDataURL(file);
+            });
+        }
 
-        // 2. Prediction Handler
-        predictBtn.addEventListener('click', async () => {
-            const imageFile = imageUpload.files[0];
-            
-            statusMessage.textContent = '';
-            resultsDiv.style.display = 'none';
-            predictBtn.disabled = true;
+        // 2. Prediction Handler
+        predictBtn.addEventListener('click', async () => {
+            const imageFile = imageUpload.files[0];
+            const latitudeValue = parseFloat(latitudeInput.value); // Get the current latitude value
+            
+            statusMessage.textContent = '';
+            resultsDiv.style.display = 'none';
+            predictBtn.disabled = true;
 
-            if (!imageFile) {
-                statusMessage.textContent = 'Please upload an image first.';
+            if (!imageFile) {
+                statusMessage.textContent = 'Please upload an image first.';
+                statusMessage.className = 'text-red-500';
+                predictBtn.disabled = false;
+                return;
+            }
+
+            // --- VALIDATION CHECK FOR LATITUDE ---
+            if (latitudeValue < 0) {
+                statusMessage.textContent = '⚠️ Latitude must be a positive value between 0 and 90 degrees.';
                 statusMessage.className = 'text-red-500';
                 predictBtn.disabled = false;
                 return;
             }
+            // --- END VALIDATION CHECK ---
 
-            statusMessage.textContent = 'Processing... Running CNN and Regression Models.';
-            statusMessage.className = 'text-cyan-400';
+            statusMessage.textContent = 'Processing... Running CNN and Regression Models.';
+            statusMessage.className = 'text-cyan-400';
 
-            try {
-                const base64Data = await fileToBase64(imageFile); 
-                
-                const requestData = {
-                    image_data: base64Data,
-                    // Only send the three required fields
-                    wind_speed: parseFloat(document.getElementById('windSpeed').value),
-                    // Value is from 'wavePeriod' ID which sends the Wave Speed value
-                    wave_period: parseFloat(document.getElementById('wavePeriod').value), 
-                    latitude: parseFloat(document.getElementById('latitude').value),
-                };
+            try {
+                const base64Data = await fileToBase64(imageFile); 
+                
+                const requestData = {
+                    image_data: base64Data,
+                    // Only send the three required fields
+                    wind_speed: parseFloat(document.getElementById('windSpeed').value),
+                    // Value is from 'wavePeriod' ID which sends the Wave Speed value
+                    wave_period: parseFloat(document.getElementById('wavePeriod').value), 
+                    latitude: latitudeValue,
+                };
 
-                const response = await fetch(API_ENDPOINT, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(requestData)
-                });
+                const response = await fetch(API_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestData)
+                });
 
-                const result = await response.json();
-                
-                if (response.ok) {
-                    displayResults(result);
-                    statusMessage.textContent = 'Analysis complete!';
-                    statusMessage.className = 'text-green-500';
-                } else {
-                    statusMessage.textContent = `Error: ${result.error || 'API call failed'}`;
-                    statusMessage.className = 'text-red-500';
-                }
+                const result = await response.json();
+                
+                if (response.ok) {
+                    displayResults(result);
+                    statusMessage.textContent = 'Analysis complete!';
+                    statusMessage.className = 'text-green-500';
+                } else {
+                    statusMessage.textContent = `Error: ${result.error || 'API call failed'}`;
+                    statusMessage.className = 'text-red-500';
+                }
 
-            } catch (error) {
-                console.error('Fetch error:', error);
-                statusMessage.textContent = 'A network error occurred.';
-                statusMessage.className = 'text-red-500';
-            } finally {
-                predictBtn.disabled = false;
-            }
-        });
+            } catch (error) {
+                console.error('Fetch error:', error);
+                statusMessage.textContent = 'A network error occurred.';
+                statusMessage.className = 'text-red-500';
+            } finally {
+                predictBtn.disabled = false;
+            }
+        });
 
-        // 3. Display Results
-        function displayResults(result) {
-            resultsDiv.style.display = 'block';
-            envSummary.textContent = result.environmental_summary;
-            forecastTableBody.innerHTML = ''; 
-            forecastContainer.style.display = 'none';
+        // 3. Display Results
+        function displayResults(result) {
+            resultsDiv.style.display = 'block';
+            envSummary.textContent = result.environmental_summary;
+            forecastTableBody.innerHTML = ''; 
+            forecastContainer.style.display = 'none';
 
-            if (result.oil_detected) {
-                detectionStatus.innerHTML = `🚨 OIL SPILL DETECTED! (Confidence: ${result.confidence})`;
-                detectionStatusContainer.className = 'p-4 rounded-lg bg-red-900/50 border border-red-700';
+            if (result.oil_detected) {
+                detectionStatus.innerHTML = `🚨 OIL SPILL DETECTED! (Confidence: ${result.confidence})`;
+                detectionStatusContainer.className = 'p-4 rounded-lg bg-red-900/50 border border-red-700';
 
-                if (result.dispersion_forecast && result.dispersion_forecast.length > 0) {
-                    forecastContainer.style.display = 'block';
-                    
-                    let startArea = result.dispersion_forecast[0].area_km2_total;
-                    let endArea = result.dispersion_forecast[result.dispersion_forecast.length - 1].area_km2_total;
-                    let timeSpan = result.dispersion_forecast[result.dispersion_forecast.length - 1].day;
-                    let rate = (endArea - startArea).toFixed(2);
-                    
-                    growthSummary.textContent = `${startArea} km² (Day 1) to ${endArea} km² (Day ${timeSpan}) | Total Growth: +${rate} km²`;
+                if (result.dispersion_forecast && result.dispersion_forecast.length > 0) {
+                    forecastContainer.style.display = 'block';
+                    
+                    let startArea = result.dispersion_forecast[0].area_km2_total;
+                    let endArea = result.dispersion_forecast[result.dispersion_forecast.length - 1].area_km2_total;
+                    let timeSpan = result.dispersion_forecast[result.dispersion_forecast.length - 1].day;
+                    let rate = (endArea - startArea).toFixed(2);
+                    
+                    growthSummary.textContent = `${startArea} km² (Day 1) to ${endArea} km² (Day ${timeSpan}) | Total Growth: +${rate} km²`;
 
-                    result.dispersion_forecast.forEach(item => {
-                        const row = forecastTableBody.insertRow();
-                        row.className = 'border-b border-gray-700 hover:bg-gray-800';
-                        
-                        const dayCell = row.insertCell(0);
-                        const areaCell = row.insertCell(1);
-                        dayCell.className = 'py-3 px-6 font-medium text-white';
-                        areaCell.className = 'py-3 px-6 text-cyan-400';
-                        
-                        dayCell.textContent = `Day ${item.day}`;
-                        areaCell.textContent = item.area_km2_total;
-                    });
-                } else {
-                    growthSummary.textContent = 'Forecast data unavailable.';
-                    forecastContainer.style.display = 'block';
-                }
+                    result.dispersion_forecast.forEach(item => {
+                        const row = forecastTableBody.insertRow();
+                        row.className = 'border-b border-gray-700 hover:bg-gray-800';
+                        
+                        const dayCell = row.insertCell(0);
+                        const areaCell = row.insertCell(1);
+                        dayCell.className = 'py-3 px-6 font-medium text-white';
+                        areaCell.className = 'py-3 px-6 text-cyan-400';
+                        
+                        dayCell.textContent = `Day ${item.day}`;
+                        areaCell.textContent = item.area_km2_total;
+                    });
+                } else {
+                    growthSummary.textContent = 'Forecast data unavailable.';
+                    forecastContainer.style.display = 'block';
+                }
 
-            } else {
-                detectionStatus.innerHTML = `✅ NO OIL SPILL DETECTED (Confidence: ${(1.0 - result.confidence).toFixed(3)})`;
-                detectionStatusContainer.className = 'p-4 rounded-lg bg-green-900/50 border border-green-700';
-                forecastContainer.style.display = 'none';
-            }
-        }
-    </script>
+            } else {
+                detectionStatus.innerHTML = `✅ NO OIL SPILL DETECTED (Confidence: ${(1.0 - result.confidence).toFixed(3)})`;
+                detectionStatusContainer.className = 'p-4 rounded-lg bg-green-900/50 border border-green-700';
+                forecastContainer.style.display = 'none';
+            }
+        }
+</script>
 </body>
 </html>

@@ -8,40 +8,28 @@ import joblib
 import base64
 import io
 import math
-import traceback 
-from flask import Flask, jsonify, request, send_from_directory, Response
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
-from werkzeug.utils import secure_filename 
-
-# --- CRITICAL ML IMPORTS FIX ---
-from tensorflow.keras.models import Sequential, load_model
-from tensorflow.keras.layers import GlobalAveragePooling2D, Dense, Dropout
+# Import the specific layers and functions needed for model reconstruction
 from tensorflow.keras.applications.efficientnet import EfficientNetB0, preprocess_input 
-# -------------------------------
+from tensorflow.keras.layers import GlobalAveragePooling2D, Dense, Dropout
+from tensorflow.keras import Sequential 
+import traceback 
 
-# --- Suppress oneDNN Warning ---
+# --- Suppress oneDNN Warning (as requested) ---
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
-# --- FLASK SETUP & LOCAL STORAGE CONFIG ---
+# --- FLASK SETUP ---
 app = Flask(__name__)
 CORS(app)
-
-# 🚀 LOCAL FILE STORAGE CONFIGURATION
-UPLOAD_FOLDER = 'uploads'
-os.makedirs(UPLOAD_FOLDER, exist_ok=True) # Ensure the directory exists
-MAX_CONTENT_SIZE_MB = 10 
-
-# --- CRITICAL FILE METADATA STORAGE ---
-# NOTE: This data is non-persistent and will reset upon container restart!
-DATASET_METADATA = {} 
-
-# --- DB CONNECTION REMOVED --- 
-print("✅ Database dependency removed. Using non-persistent local file storage in '/uploads'.")
-
+UPLOAD_FOLDER = 'uploaded_datasets'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # --- MODEL CONFIG ---
 MODEL_SAVE_PATH = "cnn_oil_detector.h5"
 REG_MODEL_PATH = "dispersion_regressor.joblib"
+# *** CRITICAL CHANGE: Now pointing to the weights file ***
 SPECIES_MODEL_PATH = 'model.weights.h5' 
 
 OIL_IMG_SIZE = (128, 128)
@@ -61,32 +49,39 @@ def load_models():
     """Attempts to load all necessary ML models."""
     global cnn_model, reg_pipeline, species_model
     
-    # 1. Load Oil Spill CNN and Regressor
+    # 1. Load Oil Spill CNN and Regressor (unchanged)
     try:
-        # NOTE: Uncomment these lines when your model files are ready in the repo!
-        # cnn_model = load_model(MODEL_SAVE_PATH) 
-        # reg_pipeline = joblib.load(REG_MODEL_PATH)
-        print("✅ ML Models (Oil Spill CNN, Regressor) loaded successfully (using mocked path checks).")
+        if not os.path.exists(MODEL_SAVE_PATH):
+            raise FileNotFoundError(f"Missing {MODEL_SAVE_PATH}")
+        if not os.path.exists(REG_MODEL_PATH):
+            raise FileNotFoundError(f"Missing {REG_MODEL_PATH}")
+
+        # Suppress Keras/TF loading output
+        cnn_model = tf.keras.models.load_model(MODEL_SAVE_PATH) 
+        reg_pipeline = joblib.load(REG_MODEL_PATH)
+        print("✅ ML Models (Oil Spill CNN, Regressor) loaded successfully.")
     except Exception as e:
         print(f"❌ Error loading Oil Spill ML models. Details: {e}")
-    
+
     # 2. Load Fish Species Classifier - WEIGHTS ONLY RECOVERY
     try:
         if not os.path.exists(SPECIES_MODEL_PATH):
-            print(f"Missing weights file at: {SPECIES_MODEL_PATH}. Skipping species model.")
-            return
+            raise FileNotFoundError(f"Missing weights file at: {SPECIES_MODEL_PATH}")
 
+        # --- FINAL FIX: MANUALLY BUILD ARCHITECTURE AND LOAD WEIGHTS ONLY ---
+        print(f"⚠️ Attempting FINAL FIX: Manual EfficientNet architecture build and 'load_weights' from {SPECIES_MODEL_PATH}")
+        
         num_classes = len(SELECTED_CLASSES)
         img_height, img_width = SPECIES_IMG_SIZE
         
-        # 1. Build the exact architecture
+        # 1. Build the exact architecture used in your Colab script
         base_model = EfficientNetB0(
-            input_shape=(img_height, img_width, 3), 
+            input_shape=(img_height, img_width, 3), # Enforcing the correct 3 channels
             include_top=False,
-            weights=None 
+            weights=None # <--- CRITICAL FIX: Set to None to prevent 1-channel initialization error
         )
         
-        # Freeze layers
+        # Freeze layers as per your training script (optional for loading, but good practice)
         for layer in base_model.layers[:-20]:
             layer.trainable = False
 
@@ -99,25 +94,32 @@ def load_models():
             Dense(num_classes, activation='softmax')
         ])
         
-        # 2. Compile and load ONLY the weights
+        # 2. Compile the model (needed before loading weights in some TF versions)
         species_model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+        
+        # 3. Load ONLY the weights from the .h5 file onto the correct architecture
+        # This will load your 3-channel weights successfully now that the architecture is correct.
         species_model.load_weights(SPECIES_MODEL_PATH)
         
-        print(f"✅ Fish Species Classifier loaded successfully.")
+        # --- DEBUGGING STEP: Print the final model input/output info ---
+        print(f"✅ Fish Species Classifier loaded successfully by restoring weights onto correct architecture.")
+        print(f"Model Input Shape forced to: {species_model.input_shape}")
         
     except Exception as e:
+        # Capture and print the full traceback for detailed debugging
+        print(f"❌ CRITICAL ERROR DURING MODEL LOADING ({SPECIES_MODEL_PATH}):")
         traceback.print_exc() 
+        print(f"--------------------------------------------------")
         print(f"❌ Error loading Fish Species Classifier. Details: {e}")
 
 
-load_models() 
+# Call model loading function at startup
+load_models()
 
-# --- IMAGE PREPROCESSING (Unchanged Logic, added error check) ---
+# --- IMAGE PREPROCESSING (Unchanged, ensures 3-channel input) ---
 def preprocess_image_from_base64(base64_string):
     """Decodes base64 image string to a normalized tensor for the OIL SPILL CNN (128x128)."""
     try:
-        if not base64_string:
-            return None
         if ',' in base64_string:
             base64_string = base64_string.split(',')[1]
         
@@ -137,14 +139,13 @@ def preprocess_image_for_classification(base64_data):
     application-specific normalization for the SPECIES CLASSIFIER.
     """
     try:
-        if not base64_data:
-            return None
         if ',' in base64_data:
             _, base64_str = base64_data.split(',', 1)
         else:
             base64_str = base64_data
 
         img_bytes = base64.b64decode(base64_str)
+        # CRITICAL: Always convert to "RGB" to ensure 3 channels
         image = Image.open(io.BytesIO(img_bytes)).convert("RGB") 
         image = image.resize(SPECIES_IMG_SIZE)
         img_array = np.array(image, dtype=np.float32)
@@ -181,12 +182,7 @@ def predict_dispersion_daywise(obs, pipeline, features, initial_area_km2, horizo
 
     try:
         Xpred = pd.DataFrame(rows)[features].astype(float)
-        # Mock prediction if reg_pipeline is None
-        if pipeline is None:
-            ypred = np.random.rand(len(Xpred)) * 0.5 
-        else:
-            ypred = pipeline.predict(Xpred)
-            
+        ypred = pipeline.predict(Xpred)
         pred_vals = np.maximum(np.array(ypred).reshape(-1,), 0.0)
         cumulative_added = np.cumsum(pred_vals)
         
@@ -201,7 +197,7 @@ def predict_dispersion_daywise(obs, pipeline, features, initial_area_km2, horizo
         return None
 
 # =========================================================
-# --- API ENDPOINTS (Datasets are Local Files) ---
+# --- API ENDPOINTS (Unchanged) ---
 # =========================================================
 
 MOCK_TREND_DATA = {
@@ -234,224 +230,212 @@ def get_trends():
 
 @app.route('/api/datasets', methods=['POST'])
 def upload_file():
-    """Handles file uploads and saves file and METADATA to local storage."""
-    
+    """Handles file uploads and saves them locally."""
     if 'file' not in request.files:
         return jsonify({'message': 'No file part in the request'}), 400
-        
     file = request.files['file']
     if file.filename == '':
         return jsonify({'message': 'No file selected'}), 400
-        
     if file:
-        filename = secure_filename(file.filename)
-        filepath = os.path.join(UPLOAD_FOLDER, filename)
-        
-        # Get file size
-        file.seek(0, os.SEEK_END)
-        file_length = file.tell()
-        file.seek(0)
-        
-        if file_length > MAX_CONTENT_SIZE_MB * 1024 * 1024:
-            return jsonify({'message': f'File size exceeds the {MAX_CONTENT_SIZE_MB}MB limit.'}), 400
-
-        try:
-            # 1. Save file content to local disk
-            file.save(filepath)
-            
-            # 2. Update local metadata dictionary
-            global DATASET_METADATA
-            DATASET_METADATA[filename] = {
-                "content_type": file.mimetype,
-                "size_bytes": file_length,
-                "upload_time": pd.Timestamp.now().isoformat(),
-            }
-            
-            print(f"💾 File {filename} saved locally to: {filepath}")
-            return jsonify({'message': f'File {filename} uploaded and saved locally.'}), 201
-
-        except Exception as e:
-            traceback.print_exc()
-            return jsonify({'message': f'Error saving file locally: {str(e)}'}), 500
-
+        filename = file.filename
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        return jsonify({'message': f'File {filename} uploaded and saved successfully!'}), 201
     return jsonify({'message': 'An unknown error occurred during upload.'}), 500
 
 
 @app.route('/api/datasets/list', methods=['GET'])
 def list_files():
-    """Returns a list of all file NAMES from local storage."""
+    """Returns a list of all files in the UPLOAD_FOLDER for persistence."""
     try:
-        # List all files in the uploads directory
-        files = os.listdir(UPLOAD_FOLDER)
+        files = os.listdir(app.config['UPLOAD_FOLDER'])
+        files = [f for f in files if os.path.isfile(os.path.join(app.config['UPLOAD_FOLDER'], f)) and not f.startswith('.')]
         return jsonify(files)
     except Exception as e:
-        print(f"Error listing files from local storage: {e}")
-        return jsonify([])
+        return jsonify({'message': f'Error listing files: {str(e)}'}), 500
 
 @app.route('/api/datasets/<filename>', methods=['GET'])
 def get_file_content(filename):
-    """Serves the file content from local storage."""
-    
-    # 1. Check if the file exists locally
-    filepath = os.path.join(UPLOAD_FOLDER, filename)
-    if not os.path.exists(filepath):
-        return jsonify({'message': f'File {filename} not found in local storage.'}), 404
-
+    """Serves the content of a specific file when clicked."""
     try:
-        # Use Flask's built-in function to safely send the file
-        return send_from_directory(
-            UPLOAD_FOLDER, 
-            filename, 
-            as_attachment=False, 
-            mimetype=DATASET_METADATA.get(filename, {}).get("content_type", 'text/plain')
-        )
+        return send_from_directory(app.config['UPLOAD_FOLDER'], filename, as_attachment=False)
     except Exception as e:
-        traceback.print_exc()
-        return jsonify({'message': f'Error retrieving file content: {str(e)}'}), 500
+        return jsonify({'message': f'File not found or error: {str(e)}'}), 404
 
 
 @app.route('/api/analyze', methods=['POST'])
 def analyze_data():
-    """Analyzes uploaded CSV or JSON data (reads from local storage)."""
+    """Endpoint using your specific rule-based analysis logic."""
     data = request.get_json()
-    filename = data.get('filename')
+    temp_str = data.get('temp')
+    acid_str = data.get('acid')
+    cond = data.get('condition')
     
-    # 1. Verify file exists
-    filepath = os.path.join(UPLOAD_FOLDER, filename)
-    if not os.path.exists(filepath):
-        return jsonify({'message': f'File {filename} not found in local storage.'}), 404
-    
-    metadata = DATASET_METADATA.get(filename, {'content_type': ''})
-    mimetype = metadata.get('content_type', 'text/csv')
+    if not temp_str or not acid_str or not cond:
+        return jsonify({'message': 'Missing temperature, pH, or condition.'}), 400
 
     try:
-        # 2. Read the content into a DataFrame
-        if 'csv' in mimetype or filename.lower().endswith('.csv'):
-            df = pd.read_csv(filepath)
-        elif 'json' in mimetype or filename.lower().endswith(('.json', '.geojson')):
-            df = pd.read_json(filepath)
-        else:
-            return jsonify({'message': 'Unsupported file type for analysis.'}), 400
+        temp = float(temp_str)
+        acid = float(acid_str)
+    except ValueError:
+        return jsonify({'message': 'Invalid numeric input for temperature or pH.'}), 400
 
-        # 3. Perform Mock Analysis
-        summary = {
-            'rows': len(df),
-            'columns': len(df.columns),
-            'missing_values': df.isnull().sum().to_dict(),
-            'data_types': df.dtypes.astype(str).to_dict(),
-            'first_5_rows': df.head().to_dict(orient='records')
-        }
-        
-        return jsonify({
-            'message': f'Analysis for {filename} complete.',
-            'summary': summary
-        })
+    insight = ""
 
-    except Exception as e:
-        traceback.print_exc()
-        return jsonify({'message': f'Error during data analysis: {str(e)}'}), 500
+    # --- RULE-BASED LOGIC ---
+    if cond == "Migration Pattern":
+        if temp < 10: 
+            insight += "Cold temperatures slow migration, altering predator-prey timing.\n"
+        elif temp > 28: 
+            insight += "High temperatures may cause earlier migration or habitat shifts.\n"
+        else: 
+            insight += "Temperature supports normal migration patterns.\n"
+        if acid < 7.9: 
+            insight += "Low pH reduces prey availability for migratory species.\n"
+        elif acid > 8.2: 
+            insight += "High pH may alter navigational cues.\n"
+        else: 
+            insight += "pH is suitable for normal migration.\n"
+            
+    elif cond == "Coral Bleaching":
+        if temp > 30: 
+            insight += "🚨 CRITICAL: High temperature increases coral bleaching risk.\n"
+        else: 
+            insight += "Temperature within tolerable range for corals.\n"
+        if acid < 8.1: 
+            insight += "⚠️ WARNING: Acidification weakens coral skeletons and resilience.\n"
+        else: 
+            insight += "pH is favorable for coral health.\n"
+            
+    elif cond == "Species Distribution":
+        if temp < 10 or temp > 28: 
+            insight += "Temperature shifts may cause species to move to new regions.\n"
+        else: 
+            insight += "Temperature supports current species distribution.\n"
+        if acid < 7.9: 
+            insight += "Acidification may disrupt ecosystem balance.\n"
+        else: 
+            insight += "pH is suitable for species survival.\n"
+            
+    elif cond == "Healthy Ecosystem":
+        if temp > 28: 
+            insight += "High temperature can stress species and destabilize ecosystems.\n"
+        else: 
+            insight += "Temperature is supporting ecosystem stability.\n"
+        if acid == -999: # Placeholder for Oil Spill impact 
+            insight += "Temperature, pH, and oxygen levels affect oil toxicity, persistence, and recovery.\n"
+    
+    final_analysis = f"Analysis for {cond}:\n\n{insight.strip()}"
 
+    return jsonify({'analysis': final_analysis})
 
 @app.route('/api/analyze_spill', methods=['POST'])
 def analyze_spill():
-    """Predicts oil spill status based on an image and environmental data."""
     if cnn_model is None or reg_pipeline is None:
-        return jsonify({'message': 'ML models are not loaded. Cannot analyze spill.'}), 503
-        
-    data = request.get_json(silent=True) # Use silent=True to avoid crash on empty body
-    if not data:
-        return jsonify({'message': 'Invalid or empty request body.'}), 400
+        return jsonify({"error": "Oil Spill ML Models are not loaded on the server."}), 500
 
-    base64_image = data.get('image')
-    obs = data.get('observation', {})
-    initial_area_km2 = float(obs.get('initial_area', 0.1)) 
+    data = request.get_json()
+    if not data or 'image_data' not in data:
+        return jsonify({"error": "Missing image_data in request"}), 400
 
-    # 🛑 Input Validation Check
-    if not base64_image or not isinstance(base64_image, str):
-         return jsonify({'message': 'Missing or invalid "image" data in request payload (must be a Base64 string).'}), 400
-    # ---------------------------
-
-    # 1. Image Classification (Oil/No Oil)
-    img_tensor = preprocess_image_from_base64(base64_image)
+    # 1. Image Processing & CNN Prediction
+    img_tensor = preprocess_image_from_base64(data['image_data'])
     if img_tensor is None:
-        return jsonify({'message': 'Image preprocessing failed. Check Base64 format.'}), 400
-        
-    try:
-        prediction = cnn_model.predict(img_tensor)
-        spill_detected = bool(np.round(prediction[0][0]))
-        confidence = float(prediction[0][0])
-        status = "Oil Spill Detected" if spill_detected else "No Oil Spill Detected"
-        
-        # 2. Dispersion Prediction (Only if spill is detected)
-        dispersion_forecast = None
-        if spill_detected:
-            dispersion_forecast = predict_dispersion_daywise(
-                obs, reg_pipeline, REG_FEATURES, initial_area_km2
-            )
-            
-        return jsonify({
-            'status': status,
-            'confidence': confidence,
-            'spill_detected': spill_detected,
-            'forecast': dispersion_forecast
-        })
-        
-    except Exception as e:
-        traceback.print_exc()
-        return jsonify({'message': f'Error during spill analysis prediction: {str(e)}'}), 500
+        return jsonify({"error": "Failed to decode or process image data for oil spill detection"}), 400
+
+    pred = cnn_model.predict(img_tensor, verbose=0)
+    confidence = float(pred[0][0])
+    is_oil = confidence > 0.5
+    
+    # 2. Environmental Factors 
+    wind_speed = float(data.get('wind_speed', 5.0))
+    wave_speed = float(data.get('wave_period', 6.0)) 
+    latitude = float(data.get('latitude', 10.0))
+    
+    K_val = 50.0 
+    initial_area_km2 = 0.1
+
+    obs = {
+        'wind_speed': wind_speed,
+        'wave_period': wave_speed,  
+        'latitude': latitude,
+        'K': K_val,
+    }
+
+    forecast = None
+    if is_oil:
+        forecast = predict_dispersion_daywise(obs, reg_pipeline, REG_FEATURES, initial_area_km2)
+
+    # 3. Interpret Factors for Summary
+    wind = "Low wind" if wind_speed <= 6 else ("Moderate wind" if wind_speed <= 12 else "High wind")
+    wave = "Slow wave speed" if wave_speed <= 4 else ("Moderate wave speed" if wave_speed <= 8 else "Fast wave speed")
+    mixing = "Moderate mixing (Fixed Default)" 
+
+    # 4. Return Combined Result
+    return jsonify({
+        "oil_detected": is_oil,
+        "confidence": round(confidence, 3),
+        "environmental_summary": f"Conditions: {wind.lower()}, {wave.lower()}, {mixing.lower()}.",
+        "dispersion_forecast": forecast
+    })
+
 
 @app.route('/api/predict_species', methods=['POST'])
 def predict_species():
-    """Classifies fish species based on an image."""
+    """
+    Handles the fish species prediction request using a separate model and preprocessing chain.
+    """
     if species_model is None:
-        return jsonify({'message': 'Fish species model is not loaded.'}), 503
-        
-    data = request.get_json(silent=True)
-    if not data:
-        return jsonify({'message': 'Invalid or empty request body.'}), 400
+        return jsonify({"error": "Fish Species model failed to load on server start. Check model path and ensure 'model.weights.h5' is present."}), 503
 
-    base64_image = data.get('image')
-
-    # 🛑 Input Validation Check
-    if not base64_image or not isinstance(base64_image, str):
-         return jsonify({'message': 'Missing or invalid "image" data in request payload (must be a Base64 string).'}), 400
-    # ---------------------------
-
-    # 1. Preprocess Image
-    img_tensor = preprocess_image_for_classification(base64_image)
-    if img_tensor is None:
-        return jsonify({'message': 'Image preprocessing failed. Check Base64 format.'}), 400
-        
     try:
-        # 2. Predict
-        predictions = species_model.predict(img_tensor)[0]
+        data = request.get_json()
+        image_data = data.get('image_data')
         
-        # 3. Format results
-        results = []
-        top_k_indices = np.argsort(predictions)[::-1][:3] # Top 3 predictions
+        threshold = float(data.get('threshold', 50.0)) 
         
-        for i in top_k_indices:
-            results.append({
-                'species': SELECTED_CLASSES[i],
-                'confidence': float(predictions[i])
-            })
-            
-        # Determine the top result
-        top_result = results[0]
+        if not image_data:
+            return jsonify({"error": "No image data provided in request."}), 400
+
+        # Preprocess the image using the classification-specific function
+        img_tensor = preprocess_image_for_classification(image_data)
         
+        if img_tensor is None:
+             return jsonify({"error": "Failed to decode or preprocess image for classification."}), 400
+
+        # Make prediction
+        predictions = species_model.predict(img_tensor, verbose=0)
+        
+        expected_classes = len(SELECTED_CLASSES)
+        if predictions.shape[1] != expected_classes:
+             print(f"ERROR: Model output shape {predictions.shape} does not match expected classes {expected_classes}.")
+             return jsonify({"error": f"Model output mismatch. Expected {expected_classes} classes, got {predictions.shape[1]}"}), 500
+        
+        confidence = float(np.max(predictions[0]) * 100) 
+        pred_index = np.argmax(predictions[0])
+
+        # Apply threshold logic
+        if confidence < threshold:
+            predicted_class = "Invasive Species"
+        else:
+            predicted_class = SELECTED_CLASSES[pred_index] 
+
+        # Return the results
         return jsonify({
-            'message': 'Species classification complete.',
-            'top_species': top_result['species'],
-            'top_confidence': top_result['confidence'],
-            'all_results': results
+            "predicted_class": predicted_class,
+            "confidence": round(confidence, 2), 
+            "threshold_used": threshold
         })
 
     except Exception as e:
         traceback.print_exc()
-        return jsonify({'message': f'Error during species prediction: {str(e)}'}), 500
+        print(f"--- DETAILED ERROR TRACEBACK ABOVE ---")
+        return jsonify({"error": f"Internal server error during species analysis: {e}"}), 500
+    
+# --- RUN SERVER ---
+if __name__ == '__main__':
+    print(f"Server running on http://127.0.0.1:5000")
+    app.run(debug=True, port=5000, use_reloader=False)
+# ... (all your imports and route definitions)
 
-
-# --- RUN SERVER (FOR LOCAL DEVELOPMENT ONLY) ---
-# if __name__ == '__main__':
-#     print(f"Server running on http://127.0.0.1:5000 (Local Debug Mode)")
-#     app.run(debug=True, port=5000, use_reloader=False)
+# NO main block needed for Gunicorn/Render deployment.
+# The 'gunicorn server:app' command handles the startup.

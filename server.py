@@ -9,54 +9,29 @@ import base64
 import io
 import math
 import traceback 
-from flask import Flask, jsonify, request, Response
+from flask import Flask, jsonify, request, send_from_directory, Response
 from flask_cors import CORS
+from werkzeug.utils import secure_filename # For safe file naming
 
-# --- MongoDB Imports and Environment Setup ---
-from pymongo import MongoClient
-from dotenv import load_dotenv
-from bson.objectid import ObjectId 
-import datetime # Added for upload_time
-
-# Load environment variables from .env file (for local use)
-load_dotenv()
-
-# Import the specific layers and functions needed for model reconstruction
-from tensorflow.keras.applications.efficientnet import EfficientNetB0, preprocess_input 
-from tensorflow.keras.layers import GlobalAveragePooling2D, Dense, Dropout
-from tensorflow.keras import Sequential 
-
-# --- Suppress oneDNN Warning (as requested) ---
+# --- Suppress oneDNN Warning ---
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
-# --- FLASK SETUP & DB CONFIG ---
+# --- FLASK SETUP & LOCAL STORAGE CONFIG ---
 app = Flask(__name__)
 CORS(app)
 
-# 🚀 MONGO DB CONFIGURATION
-MONGO_URI = os.getenv("MONGO_URI") 
-# Use a dynamic DB name, which is safer with Railway's structure
-DB_NAME = "aquaris_datasets" 
-COLLECTION_NAME = "datasets"
+# 🚀 LOCAL FILE STORAGE CONFIGURATION
+UPLOAD_FOLDER = 'uploads'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True) # Ensure the directory exists
 MAX_CONTENT_SIZE_MB = 10 
 
-# --- DB CONNECTION ---
-db_client = None
-db = None
-try:
-    if MONGO_URI:
-        # NOTE: Railway's MONGO_URL often points directly to the DB name in the URI, 
-        # so this connection is very reliable within the platform.
-        db_client = MongoClient(MONGO_URI)
-        db = db_client[DB_NAME] # Access the database
-        db.command('ping') 
-        print(f"✅ MongoDB connected successfully to database: {DB_NAME}")
-    else:
-        print("❌ CRITICAL: MONGO_URI not found in environment variables. Persistence disabled.")
-except Exception as e:
-    print(f"❌ CRITICAL: Failed to connect to MongoDB. Details: {e}")
-    db_client = None
-    db = None
+# --- CRITICAL FILE METADATA STORAGE ---
+# This dictionary simulates metadata storage for files uploaded locally.
+# Keys: 'filename' -> Values: {'content_type': 'mime', 'size_bytes': 1234}
+DATASET_METADATA = {} 
+
+# --- DB CONNECTION REMOVED --- 
+print("✅ Database dependency removed. Using non-persistent local file storage in '/uploads'.")
 
 
 # --- MODEL CONFIG (Unchanged) ---
@@ -94,7 +69,7 @@ def load_models():
     try:
         if not os.path.exists(SPECIES_MODEL_PATH):
             print(f"Missing weights file at: {SPECIES_MODEL_PATH}. Skipping species model.")
-            return # Skip species model loading
+            return 
 
         num_classes = len(SELECTED_CLASSES)
         img_height, img_width = SPECIES_IMG_SIZE
@@ -217,38 +192,7 @@ def predict_dispersion_daywise(obs, pipeline, features, initial_area_km2, horizo
         return None
 
 # =========================================================
-# --- HELPER FUNCTIONS FOR MONGODB ---
-# =========================================================
-
-def read_file_content_for_db(file, max_size_mb):
-    """Reads file content as string, checking size limits."""
-    # Reset file pointer to ensure we start reading from the beginning
-    file.seek(0)
-    
-    # Determine file size
-    file.seek(0, os.SEEK_END)
-    file_size_bytes = file.tell()
-    file.seek(0)
-    
-    if file_size_bytes > max_size_mb * 1024 * 1024:
-        print(f"File {file.filename} skipped content storage. Size: {file_size_bytes/1024/1024:.2f}MB > {max_size_mb}MB limit.")
-        return None 
-
-    if file.filename.lower().endswith('.zip'):
-        print(f"File {file.filename} skipped content storage (ZIP detected).")
-        return None 
-    
-    try:
-        content = file.read().decode('utf-8')
-        file.seek(0)
-        return content
-    except Exception as e:
-        print(f"Error reading file content for {file.filename}: {e}")
-        file.seek(0)
-        return None
-
-# =========================================================
-# --- API ENDPOINTS (Datasets are now MongoDB-Persistent) ---
+# --- API ENDPOINTS (Datasets are now Local-Persistent) ---
 # =========================================================
 
 MOCK_TREND_DATA = {
@@ -281,10 +225,8 @@ def get_trends():
 
 @app.route('/api/datasets', methods=['POST'])
 def upload_file():
-    """Handles file uploads and saves METADATA and CONTENT to MongoDB."""
-    if db is None:
-        return jsonify({'message': 'Database not connected. Cannot upload.'}), 503
-
+    """Handles file uploads and saves file and METADATA to local storage."""
+    
     if 'file' not in request.files:
         return jsonify({'message': 'No file part in the request'}), 400
         
@@ -293,111 +235,92 @@ def upload_file():
         return jsonify({'message': 'No file selected'}), 400
         
     if file:
-        filename = file.filename
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
         
-        # Determine file size (for metadata and content check)
+        # Get file size
         file.seek(0, os.SEEK_END)
         file_length = file.tell()
         file.seek(0)
         
-        # 1. Read the content (checks size limit and zips)
-        file_content = read_file_content_for_db(file, MAX_CONTENT_SIZE_MB) 
+        if file_length > MAX_CONTENT_SIZE_MB * 1024 * 1024:
+            return jsonify({'message': f'File size exceeds the {MAX_CONTENT_SIZE_MB}MB limit.'}), 400
 
-        # 2. Save document to MongoDB
         try:
-            dataset_doc = {
-                "filename": filename,
+            # 1. Save file content to local disk
+            file.save(filepath)
+            
+            # 2. Update local metadata dictionary
+            global DATASET_METADATA
+            DATASET_METADATA[filename] = {
                 "content_type": file.mimetype,
                 "size_bytes": file_length,
-                "upload_time": datetime.datetime.now().isoformat(), # Using datetime
-                "content": file_content 
+                "upload_time": pd.Timestamp.now().isoformat(),
             }
             
-            # Upsert behavior: Delete existing file with same name, then insert new one
-            db[COLLECTION_NAME].delete_one({"filename": filename})
-            result = db[COLLECTION_NAME].insert_one(dataset_doc)
-            
-            status_msg = "successfully!" if file_content is not None else f"successfully, but **content not saved** (too large or ZIP)."
-            print(f"💾 File {filename} uploaded to MongoDB with ID: {result.inserted_id}. Status: {status_msg}")
-            
-            return jsonify({'message': f'File {filename} uploaded and saved to DB {status_msg}'}), 201
+            print(f"💾 File {filename} saved locally to: {filepath}")
+            return jsonify({'message': f'File {filename} uploaded and saved locally.'}), 201
 
         except Exception as e:
             traceback.print_exc()
-            return jsonify({'message': f'Error saving to MongoDB: {str(e)}'}), 500
+            return jsonify({'message': f'Error saving file locally: {str(e)}'}), 500
 
     return jsonify({'message': 'An unknown error occurred during upload.'}), 500
 
 
 @app.route('/api/datasets/list', methods=['GET'])
 def list_files():
-    """Returns a list of all file NAMES from MongoDB."""
-    if db is None:
-        return jsonify([])
-        
+    """Returns a list of all file NAMES from local storage."""
     try:
-        # Fetch only the filename field
-        files_cursor = db[COLLECTION_NAME].find({}, {"filename": 1, "_id": 0})
-        files = [doc['filename'] for doc in files_cursor]
+        # List all files in the uploads directory
+        files = os.listdir(UPLOAD_FOLDER)
         return jsonify(files)
     except Exception as e:
-        print(f"Error listing files from MongoDB: {e}")
+        print(f"Error listing files from local storage: {e}")
         return jsonify([])
 
 @app.route('/api/datasets/<filename>', methods=['GET'])
 def get_file_content(filename):
-    """Serves the file content (the 'content' field) from MongoDB."""
-    if db is None:
-        return jsonify({'message': 'Database not connected. Cannot retrieve content.'}), 503
-        
+    """Serves the file content from local storage."""
+    
+    # 1. Check if the file exists locally
+    filepath = os.path.join(UPLOAD_FOLDER, filename)
+    if not os.path.exists(filepath):
+        return jsonify({'message': f'File {filename} not found in local storage.'}), 404
+
     try:
-        # 1. Find the document by filename
-        doc = db[COLLECTION_NAME].find_one({"filename": filename})
-        if not doc:
-            return jsonify({'message': f'File {filename} not found in database.'}), 404
-
-        # 2. Retrieve the content
-        content = doc.get("content")
-        
-        if content is None:
-              return jsonify({'message': f'Content for {filename} is not stored in the database. (File too large or ZIP)'}), 404
-
-        # 3. Return the content as text
-        return Response(
-            response=content,
-            status=200,
-            mimetype=doc.get("content_type", 'text/plain')
+        # Use Flask's built-in function to safely send the file
+        return send_from_directory(
+            UPLOAD_FOLDER, 
+            filename, 
+            as_attachment=False, 
+            mimetype=DATASET_METADATA.get(filename, {}).get("content_type", 'text/plain')
         )
-
     except Exception as e:
         traceback.print_exc()
-        return jsonify({'message': f'Error retrieving file content from MongoDB: {str(e)}'}), 500
+        return jsonify({'message': f'Error retrieving file content: {str(e)}'}), 500
 
 
 @app.route('/api/analyze', methods=['POST'])
 def analyze_data():
-    """Analyzes uploaded CSV or JSON data (reads from MongoDB)."""
+    """Analyzes uploaded CSV or JSON data (reads from local storage)."""
     data = request.get_json()
     filename = data.get('filename')
     
-    # 1. Retrieve the content from MongoDB
-    if db is None:
-        return jsonify({'message': 'Database not connected. Cannot analyze.'}), 503
+    # 1. Verify file exists
+    filepath = os.path.join(UPLOAD_FOLDER, filename)
+    if not os.path.exists(filepath):
+        return jsonify({'message': f'File {filename} not found in local storage.'}), 404
+    
+    metadata = DATASET_METADATA.get(filename, {'content_type': ''})
+    mimetype = metadata.get('content_type', 'text/csv')
 
     try:
-        doc = db[COLLECTION_NAME].find_one({"filename": filename})
-        if not doc or doc.get('content') is None:
-            return jsonify({'message': f'File {filename} not found or content not stored.'}), 404
-        
-        content = doc['content']
-        mimetype = doc.get('content_type', 'text/csv')
-
         # 2. Read the content into a DataFrame
-        # We need pandas to read the content string from MongoDB
-        if 'csv' in mimetype:
-            df = pd.read_csv(io.StringIO(content))
-        elif 'json' in mimetype:
-            df = pd.read_json(io.StringIO(content))
+        if 'csv' in mimetype or filename.lower().endswith('.csv'):
+            df = pd.read_csv(filepath)
+        elif 'json' in mimetype or filename.lower().endswith(('.json', '.geojson')):
+            df = pd.read_json(filepath)
         else:
             return jsonify({'message': 'Unsupported file type for analysis.'}), 400
 
@@ -426,6 +349,7 @@ def analyze_spill():
     if cnn_model is None or reg_pipeline is None:
         return jsonify({'message': 'ML models are not loaded. Cannot analyze spill.'}), 503
         
+    # ... (rest of the spill analysis logic remains the same)
     data = request.get_json()
     base64_image = data.get('image')
     obs = data.get('observation', {})
@@ -466,6 +390,7 @@ def predict_species():
     if species_model is None:
         return jsonify({'message': 'Fish species model is not loaded.'}), 503
         
+    # ... (rest of the species prediction logic remains the same)
     data = request.get_json()
     base64_image = data.get('image')
 

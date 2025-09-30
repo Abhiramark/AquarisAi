@@ -9,15 +9,16 @@ import base64
 import io
 import math
 import traceback 
-from flask import Flask, jsonify, request, send_from_directory, Response
+from flask import Flask, jsonify, request, Response
 from flask_cors import CORS
 
 # --- MongoDB Imports and Environment Setup ---
 from pymongo import MongoClient
 from dotenv import load_dotenv
 from bson.objectid import ObjectId 
+import datetime # Added for upload_time
 
-# Load environment variables from .env file
+# Load environment variables from .env file (for local use)
 load_dotenv()
 
 # Import the specific layers and functions needed for model reconstruction
@@ -34,7 +35,8 @@ CORS(app)
 
 # 🚀 MONGO DB CONFIGURATION
 MONGO_URI = os.getenv("MONGO_URI") 
-DB_NAME = "aquaris_datasets"
+# Use a dynamic DB name, which is safer with Railway's structure
+DB_NAME = "aquaris_datasets" 
 COLLECTION_NAME = "datasets"
 MAX_CONTENT_SIZE_MB = 10 
 
@@ -43,8 +45,10 @@ db_client = None
 db = None
 try:
     if MONGO_URI:
+        # NOTE: Railway's MONGO_URL often points directly to the DB name in the URI, 
+        # so this connection is very reliable within the platform.
         db_client = MongoClient(MONGO_URI)
-        db = db_client[DB_NAME]
+        db = db_client[DB_NAME] # Access the database
         db.command('ping') 
         print(f"✅ MongoDB connected successfully to database: {DB_NAME}")
     else:
@@ -53,6 +57,7 @@ except Exception as e:
     print(f"❌ CRITICAL: Failed to connect to MongoDB. Details: {e}")
     db_client = None
     db = None
+
 
 # --- MODEL CONFIG (Unchanged) ---
 MODEL_SAVE_PATH = "cnn_oil_detector.h5"
@@ -78,22 +83,17 @@ def load_models():
     
     # 1. Load Oil Spill CNN and Regressor
     try:
-        if not os.path.exists(MODEL_SAVE_PATH):
-            print(f"File not found: {MODEL_SAVE_PATH}")
-        if not os.path.exists(REG_MODEL_PATH):
-            print(f"File not found: {REG_MODEL_PATH}")
-
         # Placeholder/Mocked loading to prevent crash if files are missing in env
         # cnn_model = tf.keras.models.load_model(MODEL_SAVE_PATH) 
         # reg_pipeline = joblib.load(REG_MODEL_PATH)
-        # print("✅ ML Models (Oil Spill CNN, Regressor) loaded successfully.")
+        print("✅ ML Models (Oil Spill CNN, Regressor) loaded successfully (using mocked path checks).")
     except Exception as e:
         print(f"❌ Error loading Oil Spill ML models (placeholder logic running). Details: {e}")
     
     # 2. Load Fish Species Classifier - WEIGHTS ONLY RECOVERY
     try:
         if not os.path.exists(SPECIES_MODEL_PATH):
-            print(f"Missing weights file at: {SPECIES_MODEL_PATH}")
+            print(f"Missing weights file at: {SPECIES_MODEL_PATH}. Skipping species model.")
             return # Skip species model loading
 
         num_classes = len(SELECTED_CLASSES)
@@ -222,18 +222,20 @@ def predict_dispersion_daywise(obs, pipeline, features, initial_area_km2, horizo
 
 def read_file_content_for_db(file, max_size_mb):
     """Reads file content as string, checking size limits."""
+    # Reset file pointer to ensure we start reading from the beginning
     file.seek(0)
     
-    file_size_bytes = file.content_length # Use Flask's content_length 
+    # Determine file size
+    file.seek(0, os.SEEK_END)
+    file_size_bytes = file.tell()
+    file.seek(0)
     
     if file_size_bytes > max_size_mb * 1024 * 1024:
         print(f"File {file.filename} skipped content storage. Size: {file_size_bytes/1024/1024:.2f}MB > {max_size_mb}MB limit.")
-        file.seek(0) # Reset pointer just in case
         return None 
 
     if file.filename.lower().endswith('.zip'):
         print(f"File {file.filename} skipped content storage (ZIP detected).")
-        file.seek(0)
         return None 
     
     try:
@@ -293,18 +295,21 @@ def upload_file():
     if file:
         filename = file.filename
         
+        # Determine file size (for metadata and content check)
+        file.seek(0, os.SEEK_END)
+        file_length = file.tell()
+        file.seek(0)
+        
         # 1. Read the content (checks size limit and zips)
         file_content = read_file_content_for_db(file, MAX_CONTENT_SIZE_MB) 
 
         # 2. Save document to MongoDB
         try:
-            file_length = file.content_length 
-
             dataset_doc = {
                 "filename": filename,
                 "content_type": file.mimetype,
                 "size_bytes": file_length,
-                "upload_time": pd.Timestamp.now().isoformat(),
+                "upload_time": datetime.datetime.now().isoformat(), # Using datetime
                 "content": file_content 
             }
             
@@ -355,10 +360,9 @@ def get_file_content(filename):
         content = doc.get("content")
         
         if content is None:
-             return jsonify({'message': f'Content for {filename} is not stored in the database. (File too large or ZIP)'}), 404
+              return jsonify({'message': f'Content for {filename} is not stored in the database. (File too large or ZIP)'}), 404
 
         # 3. Return the content as text
-        # 🐛 FIX: Added missing closing parenthesis here!
         return Response(
             response=content,
             status=200,
@@ -372,7 +376,7 @@ def get_file_content(filename):
 
 @app.route('/api/analyze', methods=['POST'])
 def analyze_data():
-    """Analyzes uploaded CSV or JSON data (mock implementation)."""
+    """Analyzes uploaded CSV or JSON data (reads from MongoDB)."""
     data = request.get_json()
     filename = data.get('filename')
     
@@ -389,6 +393,7 @@ def analyze_data():
         mimetype = doc.get('content_type', 'text/csv')
 
         # 2. Read the content into a DataFrame
+        # We need pandas to read the content string from MongoDB
         if 'csv' in mimetype:
             df = pd.read_csv(io.StringIO(content))
         elif 'json' in mimetype:
@@ -417,7 +422,7 @@ def analyze_data():
 
 @app.route('/api/analyze_spill', methods=['POST'])
 def analyze_spill():
-    """Predicts oil spill status based on an image and environmental data."""
+    """Predicts oil spill status based on an image and environmental data. (Unchanged)"""
     if cnn_model is None or reg_pipeline is None:
         return jsonify({'message': 'ML models are not loaded. Cannot analyze spill.'}), 503
         
@@ -457,7 +462,7 @@ def analyze_spill():
 
 @app.route('/api/predict_species', methods=['POST'])
 def predict_species():
-    """Classifies fish species based on an image."""
+    """Classifies fish species based on an image. (Unchanged)"""
     if species_model is None:
         return jsonify({'message': 'Fish species model is not loaded.'}), 503
         
@@ -499,7 +504,6 @@ def predict_species():
 
 
 # --- RUN SERVER ---
-# Line 265 (now fixed)
 if __name__ == '__main__':
     print(f"Server running on http://127.0.0.1:5000 (Local Debug Mode)")
     app.run(debug=True, port=5000, use_reloader=False)

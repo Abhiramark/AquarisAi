@@ -357,11 +357,15 @@ def analyze_spill():
         
     data = request.get_json()
     base64_image = data.get('image')
-    obs = data.get('observation', {})
-    initial_area_km2 = float(obs.get('initial_area', 0.1)) 
+
+    # 🛑 CRITICAL FIX: Add a check for NoneType input
+    if not base64_image:
+        return jsonify({'message': 'Missing image data in request payload.'}), 400
+    # -----------------------------------------------
 
     # 1. Image Classification (Oil/No Oil)
     img_tensor = preprocess_image_from_base64(base64_image)
+    # ... (rest of the function continues) ...
     if img_tensor is None:
         return jsonify({'message': 'Invalid image data.'}), 400
         
@@ -398,8 +402,14 @@ def predict_species():
     data = request.get_json()
     base64_image = data.get('image')
 
+    # 🛑 CRITICAL FIX: Add a check for NoneType input
+    if not base64_image:
+        return jsonify({'message': 'Missing image data in request payload.'}), 400
+    # -----------------------------------------------
+
     # 1. Preprocess Image
     img_tensor = preprocess_image_for_classification(base64_image)
+    # ... (rest of the function continues) ...
     if img_tensor is None:
         return jsonify({'message': 'Invalid image data or preprocessing failed.'}), 400
         

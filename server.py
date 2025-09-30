@@ -11,7 +11,14 @@ import math
 import traceback 
 from flask import Flask, jsonify, request, send_from_directory, Response
 from flask_cors import CORS
-from werkzeug.utils import secure_filename # For safe file naming
+from werkzeug.utils import secure_filename 
+
+# --- CRITICAL ML IMPORTS FIX ---
+# This ensures that Sequential, load_model, and EfficientNetB0 are all correctly defined.
+from tensorflow.keras.models import Sequential, load_model
+from tensorflow.keras.layers import GlobalAveragePooling2D, Dense, Dropout
+from tensorflow.keras.applications.efficientnet import EfficientNetB0, preprocess_input 
+# -------------------------------
 
 # --- Suppress oneDNN Warning ---
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
@@ -26,15 +33,14 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True) # Ensure the directory exists
 MAX_CONTENT_SIZE_MB = 10 
 
 # --- CRITICAL FILE METADATA STORAGE ---
-# This dictionary simulates metadata storage for files uploaded locally.
-# Keys: 'filename' -> Values: {'content_type': 'mime', 'size_bytes': 1234}
+# NOTE: This data is non-persistent and will reset upon container restart!
 DATASET_METADATA = {} 
 
 # --- DB CONNECTION REMOVED --- 
 print("✅ Database dependency removed. Using non-persistent local file storage in '/uploads'.")
 
 
-# --- MODEL CONFIG (Unchanged) ---
+# --- MODEL CONFIG ---
 MODEL_SAVE_PATH = "cnn_oil_detector.h5"
 REG_MODEL_PATH = "dispersion_regressor.joblib"
 SPECIES_MODEL_PATH = 'model.weights.h5' 
@@ -47,7 +53,7 @@ SELECTED_CLASSES = [
     "Scat fish","Silver Perch","Silver-Body","SnakeHead","Tenpounder","Tilapia"
 ]
 
-# --- GLOBAL MODELS (Unchanged) ---
+# --- GLOBAL MODELS ---
 cnn_model = None
 reg_pipeline = None
 species_model = None 
@@ -58,18 +64,18 @@ def load_models():
     
     # 1. Load Oil Spill CNN and Regressor
     try:
-        # Placeholder/Mocked loading to prevent crash if files are missing in env
-        # cnn_model = tf.keras.models.load_model(MODEL_SAVE_PATH) 
+        # NOTE: Uncomment these lines when your model files are ready in the repo!
+        # cnn_model = load_model(MODEL_SAVE_PATH) 
         # reg_pipeline = joblib.load(REG_MODEL_PATH)
         print("✅ ML Models (Oil Spill CNN, Regressor) loaded successfully (using mocked path checks).")
     except Exception as e:
-        print(f"❌ Error loading Oil Spill ML models (placeholder logic running). Details: {e}")
+        print(f"❌ Error loading Oil Spill ML models. Details: {e}")
     
     # 2. Load Fish Species Classifier - WEIGHTS ONLY RECOVERY
     try:
         if not os.path.exists(SPECIES_MODEL_PATH):
             print(f"Missing weights file at: {SPECIES_MODEL_PATH}. Skipping species model.")
-            return 
+            return
 
         num_classes = len(SELECTED_CLASSES)
         img_height, img_width = SPECIES_IMG_SIZE
@@ -192,7 +198,7 @@ def predict_dispersion_daywise(obs, pipeline, features, initial_area_km2, horizo
         return None
 
 # =========================================================
-# --- API ENDPOINTS (Datasets are now Local-Persistent) ---
+# --- API ENDPOINTS (Datasets are Local Files) ---
 # =========================================================
 
 MOCK_TREND_DATA = {
@@ -345,15 +351,14 @@ def analyze_data():
 
 @app.route('/api/analyze_spill', methods=['POST'])
 def analyze_spill():
-    """Predicts oil spill status based on an image and environmental data. (Unchanged)"""
+    """Predicts oil spill status based on an image and environmental data."""
     if cnn_model is None or reg_pipeline is None:
         return jsonify({'message': 'ML models are not loaded. Cannot analyze spill.'}), 503
         
-    # ... (rest of the spill analysis logic remains the same)
     data = request.get_json()
     base64_image = data.get('image')
     obs = data.get('observation', {})
-    initial_area_km2 = float(obs.get('initial_area', 0.1)) # Default 0.1 km2
+    initial_area_km2 = float(obs.get('initial_area', 0.1)) 
 
     # 1. Image Classification (Oil/No Oil)
     img_tensor = preprocess_image_from_base64(base64_image)
@@ -386,11 +391,10 @@ def analyze_spill():
 
 @app.route('/api/predict_species', methods=['POST'])
 def predict_species():
-    """Classifies fish species based on an image. (Unchanged)"""
+    """Classifies fish species based on an image."""
     if species_model is None:
         return jsonify({'message': 'Fish species model is not loaded.'}), 503
         
-    # ... (rest of the species prediction logic remains the same)
     data = request.get_json()
     base64_image = data.get('image')
 

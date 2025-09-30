@@ -4,6 +4,7 @@ pymongo
 python-dotenv
 pandas
 numpy
+dnspython
 tensorflow
 scikit-learn # joblib is often used with scikit-learn models
 Pillow # PIL is imported from here

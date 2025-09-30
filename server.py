@@ -14,7 +14,6 @@ from flask_cors import CORS
 from werkzeug.utils import secure_filename 
 
 # --- CRITICAL ML IMPORTS FIX ---
-# This ensures that Sequential, load_model, and EfficientNetB0 are all correctly defined.
 from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import GlobalAveragePooling2D, Dense, Dropout
 from tensorflow.keras.applications.efficientnet import EfficientNetB0, preprocess_input 
@@ -113,10 +112,12 @@ def load_models():
 
 load_models() 
 
-# --- IMAGE PREPROCESSING (Unchanged) ---
+# --- IMAGE PREPROCESSING (Unchanged Logic, added error check) ---
 def preprocess_image_from_base64(base64_string):
     """Decodes base64 image string to a normalized tensor for the OIL SPILL CNN (128x128)."""
     try:
+        if not base64_string:
+            return None
         if ',' in base64_string:
             base64_string = base64_string.split(',')[1]
         
@@ -136,6 +137,8 @@ def preprocess_image_for_classification(base64_data):
     application-specific normalization for the SPECIES CLASSIFIER.
     """
     try:
+        if not base64_data:
+            return None
         if ',' in base64_data:
             _, base64_str = base64_data.split(',', 1)
         else:
@@ -355,19 +358,23 @@ def analyze_spill():
     if cnn_model is None or reg_pipeline is None:
         return jsonify({'message': 'ML models are not loaded. Cannot analyze spill.'}), 503
         
-    data = request.get_json()
-    base64_image = data.get('image')
+    data = request.get_json(silent=True) # Use silent=True to avoid crash on empty body
+    if not data:
+        return jsonify({'message': 'Invalid or empty request body.'}), 400
 
-    # 🛑 CRITICAL FIX: Add a check for NoneType input
-    if not base64_image:
-        return jsonify({'message': 'Missing image data in request payload.'}), 400
-    # -----------------------------------------------
+    base64_image = data.get('image')
+    obs = data.get('observation', {})
+    initial_area_km2 = float(obs.get('initial_area', 0.1)) 
+
+    # 🛑 Input Validation Check
+    if not base64_image or not isinstance(base64_image, str):
+         return jsonify({'message': 'Missing or invalid "image" data in request payload (must be a Base64 string).'}), 400
+    # ---------------------------
 
     # 1. Image Classification (Oil/No Oil)
     img_tensor = preprocess_image_from_base64(base64_image)
-    # ... (rest of the function continues) ...
     if img_tensor is None:
-        return jsonify({'message': 'Invalid image data.'}), 400
+        return jsonify({'message': 'Image preprocessing failed. Check Base64 format.'}), 400
         
     try:
         prediction = cnn_model.predict(img_tensor)
@@ -391,7 +398,7 @@ def analyze_spill():
         
     except Exception as e:
         traceback.print_exc()
-        return jsonify({'message': f'Error during spill analysis: {str(e)}'}), 500
+        return jsonify({'message': f'Error during spill analysis prediction: {str(e)}'}), 500
 
 @app.route('/api/predict_species', methods=['POST'])
 def predict_species():
@@ -399,19 +406,21 @@ def predict_species():
     if species_model is None:
         return jsonify({'message': 'Fish species model is not loaded.'}), 503
         
-    data = request.get_json()
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({'message': 'Invalid or empty request body.'}), 400
+
     base64_image = data.get('image')
 
-    # 🛑 CRITICAL FIX: Add a check for NoneType input
-    if not base64_image:
-        return jsonify({'message': 'Missing image data in request payload.'}), 400
-    # -----------------------------------------------
+    # 🛑 Input Validation Check
+    if not base64_image or not isinstance(base64_image, str):
+         return jsonify({'message': 'Missing or invalid "image" data in request payload (must be a Base64 string).'}), 400
+    # ---------------------------
 
     # 1. Preprocess Image
     img_tensor = preprocess_image_for_classification(base64_image)
-    # ... (rest of the function continues) ...
     if img_tensor is None:
-        return jsonify({'message': 'Invalid image data or preprocessing failed.'}), 400
+        return jsonify({'message': 'Image preprocessing failed. Check Base64 format.'}), 400
         
     try:
         # 2. Predict
@@ -442,7 +451,7 @@ def predict_species():
         return jsonify({'message': f'Error during species prediction: {str(e)}'}), 500
 
 
-# --- RUN SERVER ---
-if __name__ == '__main__':
-    print(f"Server running on http://127.0.0.1:5000 (Local Debug Mode)")
-    app.run(debug=True, port=5000, use_reloader=False)
+# --- RUN SERVER (FOR LOCAL DEVELOPMENT ONLY) ---
+# if __name__ == '__main__':
+#     print(f"Server running on http://127.0.0.1:5000 (Local Debug Mode)")
+#     app.run(debug=True, port=5000, use_reloader=False)

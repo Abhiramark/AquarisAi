@@ -124,9 +124,9 @@
 
             <div class="grid lg:grid-cols-3 gap-8">
                 <div class="lg:col-span-1 space-y-8">
-                    <div class="card p-6 border-gray-700">
+                    <div id="locationInputCard" class="card p-6 border-gray-700">
                         <h2 class="text-xl font-extrabold mb-4 text-cyan-400 border-b border-gray-700 pb-2">Location Input</h2>
-                        <div class="mb-6">
+                        <div id="gridSelectControl" class="mb-6">
                             <label for="gridSelect" class="block text-sm font-medium text-gray-300 mb-1">Select Potential Habitat (Grid):</label>
                             <select id="gridSelect" class="w-full p-3 rounded-lg border border-gray-700 bg-gray-900 text-white focus-ring-cyan transition duration-150" onchange="checkInputs()">
                                 <option value="" disabled selected>Choose a Grid Location</option>
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <div class="card p-4 border-gray-700">
+                    <div id="oceanMapCard" class="card p-4 border-gray-700">
                         <h2 class="text-xl font-extrabold mb-2 text-cyan-400 border-b border-gray-700 pb-2">9x7 Ocean Grid Visualization</h2>
                         <div class="flex justify-center">
                             <div id="oceanMapContainer" class="w-full relative">
@@ -160,7 +160,7 @@
                     <h2 class="text-2xl font-extrabold mb-4 text-cyan-400 border-b border-gray-700 pb-2">Analysis Results & Suitability</h2>
 
                     <div id="initialMessage" class="text-center text-xl text-gray-400 p-10 bg-gray-900 rounded-lg shadow-inner border border-gray-700">
-                        <p>Select a **Species**, **Life Stage**, and **Grid Location** to begin the analysis.</p>
+                        <p>Select a Species, Life Stage, and Grid Location to begin the analysis.</p>
                     </div>
 
                     <div id="resultsDisplay" class="hidden space-y-6">
@@ -182,7 +182,7 @@
                             <p id="migrationMessage" class="text-base font-semibold">--</p>
                         </div>
 
-                        <h3 class="text-xl font-bold text-cyan-400 mb-3 border-b border-gray-700 pb-1">Environmental Factor Breakdown</h3>
+                        <h3 id="factorBreakdownTitle" class="text-xl font-bold text-cyan-400 mb-3 border-b border-gray-700 pb-1">Environmental Factor Breakdown</h3>
                         <div class="overflow-x-auto shadow-lg rounded-lg border border-gray-700">
                             <table class="min-w-full divide-y divide-gray-700">
                                 <thead class="bg-gray-900">
@@ -202,20 +202,19 @@
             </div>
         </main>
     </div>
-
     <script>
-        // --- DATA SETUP (Constants unchanged) ---
-        const PUFFER_CONVENIENT_FACTORS_CSV = `Fish,Life Stages,Duration (Weeks),Life time (Weeks),Convenient Temperature( degree C),Convenient Salinity(PSU),Convenient pH
+    // --- DATA SETUP (Constants unchanged) ---
+    const PUFFER_CONVENIENT_FACTORS_CSV = `Fish,Life Stages,Duration (Weeks),Life time (Weeks),Convenient Temperature( degree C),Convenient Salinity(PSU),Convenient pH
 Green spotted puffer,Juvenile,24,1-25,30,29,7.8
 Green spotted puffer,Sub adult,62,25-87,29,32,8.2
 Green spotted puffer,Adult,283,87-370,27,34,8.6`;
 
-        const BANGUS_CONVENIENT_FACTORS_CSV = `Fish,Life Stages,Duration (Weeks),Life time (Weeks),Convenient Temperature( degree C),Convenient Salinity(PSU),Convenient pH
+    const BANGUS_CONVENIENT_FACTORS_CSV = `Fish,Life Stages,Duration (Weeks),Life time (Weeks),Convenient Temperature( degree C),Convenient Salinity(PSU),Convenient pH
 Milkfish (Bangus),Juvenile,18,1-19,28,32,8.0
 Milkfish (Bangus),Sub adult,50,19-69,29,34,8.2
 Milkfish (Bangus),Adult,300,69-369,30,36,8.4`;
 
-        const GRID_INFO_CSV = `Grid,Sea Temperature (degree C),Salinity(PSU),pH,Direction
+    const GRID_INFO_CSV = `Grid,Sea Temperature (degree C),Salinity(PSU),pH,Direction
 A1,24.038,33.491,7.948,North-west
 A2,24.756,33.496,7.968,North-west
 A3,25.532,33.518,7.978,West
@@ -280,508 +279,723 @@ I5,28.488,36.489,8.119,East
 I6,29.25,36.519,8.137,South-east
 I7,30.025,36.503,8.149,South-east`;
 
-        // --- GLOBAL VARIABLES & CONSTANTS ---
-        let allConvenientFactors = {};
-        let gridInfo = [];
-        let canvas, ctx, gridPoints = {};
-        let currentFish = ''; // Start unselected
+    // --- GLOBAL VARIABLES & CONSTANTS ---
+    let allConvenientFactors = {};
+    let gridInfo = [];
+    let canvas, ctx, gridPoints = {};
+    let currentFish = ''; // Start unselected
 
-        const GRID_ROWS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
-        const GRID_COLS = [1, 2, 3, 4, 5, 6, 7];
-        const ORIGIN_GRID = 'E4';
-        const MIGRATION_THRESHOLD = 85; 
-        const MIGRATION_IMPROVEMENT_MIN = 5; 
-        const VISUAL_GRID_SIZE = 20;
+    const GRID_ROWS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
+    const GRID_COLS = [1, 2, 3, 4, 5, 6, 7];
+    const ORIGIN_GRID = 'E4';
+    const MIGRATION_THRESHOLD = 85; 
+    const MIGRATION_IMPROVEMENT_MIN = 5; 
+    const VISUAL_GRID_SIZE = 20;
 
-        const factors = [
-            { name: 'Temperature', unit: '°C', convenientKey: 'Convenient Temperature( degree C)', gridKey: 'Sea Temperature (degree C)', tolerance: 5.0 },
-            { name: 'Salinity', unit: 'PSU', convenientKey: 'Convenient Salinity(PSU)', gridKey: 'Salinity(PSU)', tolerance: 10.0 },
-            { name: 'pH', unit: '', convenientKey: 'Convenient pH', gridKey: 'pH', tolerance: 1.5 }
-        ];
+    const factors = [
+        { name: 'Temperature', unit: '°C', convenientKey: 'Convenient Temperature( degree C)', gridKey: 'Sea Temperature (degree C)', tolerance: 5.0 },
+        { name: 'Salinity', unit: 'PSU', convenientKey: 'Convenient Salinity(PSU)', gridKey: 'Salinity(PSU)', tolerance: 10.0 },
+        { name: 'pH', unit: '', convenientKey: 'Convenient pH', gridKey: 'pH', tolerance: 1.5 }
+    ];
 
-        // --- HELPER FUNCTIONS (unchanged) ---
-        function parseCSV(csvString) { 
-            const lines = csvString.trim().split('\n').filter(line => line.trim() !== '');
-            if (lines.length === 0) return [];
-            const headers = lines[0].split(',').map(h => h.trim());
+    // --- CSV PARSING ---
+    function parseCSV(csvString) { 
+        const lines = csvString.trim().split('\n').filter(line => line.trim() !== '');
+        if (lines.length === 0) return [];
+        const headers = lines[0].split(',').map(h => h.trim());
+        const data = [];
+        for (let i = 1; i < lines.length; i++) {
+            const values = lines[i].split(',').map(v => v.trim());
+            if (values.length === headers.length) {
+                const row = {};
+                headers.forEach((header, index) => {
+                    const numericHeaders = factors.map(f => f.convenientKey).concat(factors.map(f => f.gridKey));
+                    if (numericHeaders.includes(header) || header.includes('Temperature') || header.includes('Salinity') || header.includes('pH')) {
+                        row[header] = parseFloat(values[index]);
+                    }
+                    else row[header] = values[index];
+                });
+                data.push(row);
+            }
+        }
+        return data;
+    }
 
-            const data = [];
-            for (let i = 1; i < lines.length; i++) {
-                const values = lines[i].split(',').map(v => v.trim());
-                if (values.length === headers.length) {
-                    const row = {};
-                    headers.forEach((header, index) => {
-                        const numericHeaders = factors.map(f => f.convenientKey).concat(factors.map(f => f.gridKey));
-                        if (numericHeaders.includes(header)) {
-                            row[header] = parseFloat(values[index]);
-                        } else {
-                            row[header] = values[index];
-                        }
-                    });
-                    data.push(row);
+    // --- FISH INSIGHT ---
+    function getFishInsight(fish) {
+        if (fish === 'Puffer') return `Green Spotted Puffer thrives in brackish to fully marine environments.`;
+        if (fish === 'Bangus') return `Milkfish (Bangus) is euryhaline, preferring brackish and marine zones.`;
+        return "";
+    }
+
+    // --- CALCULATE SUITABILITY (HSS) ---
+    function calculateSuitability(gridData, convenientData) { 
+        let totalScore = 0;
+        const comparisonRows = [];
+        factors.forEach(f => {
+            const ideal = convenientData[f.convenientKey];
+            const actual = gridData[f.gridKey];
+            if (typeof ideal !== 'number' || typeof actual !== 'number') return;
+            const score = Math.max(0, 1 - Math.abs(actual - ideal) / f.tolerance);
+            totalScore += score;
+            comparisonRows.push({
+                factor: f.name,
+                unit: f.unit,
+                convenient: ideal,
+                grid: actual,
+                deviation: Math.abs(actual - ideal),
+                suitability: score
+            });
+        });
+        const finalScore = (totalScore / factors.length) * 100;
+        return { finalScore, comparisonRows };
+    }
+
+    // --- DYNAMIC TABLE HEADER SETUP ---
+    function setTableForFactorBreakdown() {
+        const table = document.getElementById('comparisonTableBody').closest('table');
+        const thead = table.querySelector('thead');
+        thead.innerHTML = `
+            <tr class="bg-gray-900">
+                <th class="px-4 py-3 text-left text-xs font-extrabold text-cyan-400 uppercase tracking-wider">Factor</th>
+                <th class="px-4 py-3 text-left text-xs font-extrabold text-cyan-400 uppercase tracking-wider">Convenient (Ideal)</th>
+                <th class="px-4 py-3 text-left text-xs font-extrabold text-cyan-400 uppercase tracking-wider">Selected Grid</th>
+                <th class="px-4 py-3 text-left text-xs font-extrabold text-cyan-400 uppercase tracking-wider">Suitability (%)</th>
+            </tr>
+        `;
+        document.getElementById('factorBreakdownTitle').textContent = 'Environmental Factor Breakdown';
+    }
+
+    function setTableForGridAnalysis() {
+        const table = document.getElementById('comparisonTableBody').closest('table');
+        const thead = table.querySelector('thead');
+        thead.innerHTML = `
+            <tr class="bg-gray-900">
+                <th class="px-4 py-3 text-left text-xs font-extrabold text-cyan-400 uppercase tracking-wider">Grid</th>
+                <th class="px-4 py-3 text-left text-xs font-extrabold text-cyan-400 uppercase tracking-wider">Direction</th>
+                <th class="px-4 py-3 text-left text-xs font-extrabold text-cyan-400 uppercase tracking-wider">Temp (°C)</th>
+                <th class="px-4 py-3 text-left text-xs font-extrabold text-cyan-400 uppercase tracking-wider">Salinity (PSU)</th>
+                <th class="px-4 py-3 text-left text-xs font-extrabold text-cyan-400 uppercase tracking-wider">pH</th>
+                <th class="px-4 py-3 text-left text-xs font-extrabold text-cyan-400 uppercase tracking-wider">Suitability (%)</th>
+            </tr>
+        `;
+        document.getElementById('factorBreakdownTitle').textContent = 'Full Grid Suitability Breakdown';
+    }
+
+    // --- OCEAN GRID ANALYSIS DISPLAY (NEW) ---
+    function displayOceanGridAnalysis(fish, lifeStage) {
+        setTableForGridAnalysis(); // Set headers for the Grid Analysis
+
+        const convenientFactors = allConvenientFactors[fish].find(f => f['Life Stages'] === lifeStage);
+        if (!convenientFactors) return;
+
+        const tbody = document.getElementById('comparisonTableBody');
+        tbody.innerHTML = '';
+        
+        let bestGrid = { grid: null, score: -1 };
+
+        gridInfo.forEach(grid => {
+            const { finalScore } = calculateSuitability(grid, convenientFactors);
+            
+            if (finalScore > bestGrid.score) {
+                bestGrid.score = finalScore;
+                bestGrid.grid = grid.Grid;
+            }
+
+            // Determine color class based on score
+            const fbClass = finalScore >= 80 ? 'text-green-400 font-bold' :
+                            finalScore >= 50 ? 'text-yellow-400 font-bold' : 'text-red-400 font-bold';
+            
+            // Create a row for the grid data
+            const tr = document.createElement('tr');
+            // Highlight the best-suited grid
+            if (grid.Grid === bestGrid.grid) { 
+                 tr.className = 'bg-cyan-900/40 border-l-4 border-cyan-500';
+            }
+
+            tr.innerHTML = `
+                <td class="px-4 py-2 font-bold">${grid.Grid}</td>
+                <td class="px-4 py-2 text-gray-400">${grid.Direction}</td>
+                <td class="px-4 py-2">${grid['Sea Temperature (degree C)'].toFixed(2)}</td>
+                <td class="px-4 py-2">${grid['Salinity(PSU)'].toFixed(2)}</td>
+                <td class="px-4 py-2">${grid.pH.toFixed(3)}</td>
+                <td class="px-4 py-2 ${fbClass}">${finalScore.toFixed(1)}%</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        // Update the main score card to show the best grid in this mode
+        document.getElementById('scoreText').textContent = `${bestGrid.score.toFixed(1)}%`;
+        
+        // Update the verdict message for Grid Analysis
+        const fishName = (fish === 'Puffer') ? 'Green Spotted Puffer' : 'Bangus (Milkfish)';
+        document.getElementById('suitabilityVerdict').innerHTML = `
+            The overall most suitable location for a ${lifeStage} ${fishName} is Grid ${bestGrid.grid} with a score of ${bestGrid.score.toFixed(1)}%.
+        `;
+
+        // Position the fish indicator over the score bar (showing best score position)
+        const fishIndicator = document.getElementById('suitabilityFishIndicator');
+        fishIndicator.style.left = `${Math.min(100, bestGrid.score)}%`;
+
+        // Update score bar color based on the best score
+        const scoreBar = document.getElementById('scoreBar');
+        scoreBar.style.width = `${bestGrid.score.toFixed(1)}%`;
+        if (bestGrid.score >= 90) {
+            scoreBar.className = 'score-bar h-full bg-green-500';
+        } else if (bestGrid.score >= 70) {
+            scoreBar.className = 'score-bar h-full bg-lime-500';
+        } else if (bestGrid.score >= 50) {
+            scoreBar.className = 'score-bar h-full bg-yellow-500';
+        } else {
+            scoreBar.className = 'score-bar h-full bg-red-500';
+        }
+    }
+
+
+    // --- MIGRATION SIMULATION DISPLAY ---
+    function displayMigrationSimulation(selectedGridId, currentScore, comparisonRows, targetGrid, targetScore) {
+        setTableForFactorBreakdown(); // Set headers for the Factor Breakdown
+        
+        // Ensure Migration Status is visible for this mode
+        document.getElementById('migrationStatus').classList.remove('hidden');
+        
+        // 2. Suitability Bar & Score Text
+        document.getElementById('scoreText').textContent = `${currentScore.toFixed(1)}%`;
+        const scoreBar = document.getElementById('scoreBar');
+        scoreBar.style.width = `${currentScore.toFixed(1)}%`;
+        
+        let verdictText = '';
+        if (currentScore >= 90) {
+            scoreBar.className = 'score-bar h-full bg-green-500';
+            verdictText = `Excellent Suitability! This location is highly ideal for the current life stage.`;
+        } else if (currentScore >= 70) {
+            scoreBar.className = 'score-bar h-full bg-lime-500';
+            verdictText = `Good Suitability. The environment is supportive, though minor factors could be improved.`;
+        } else if (currentScore >= 50) {
+            scoreBar.className = 'score-bar h-full bg-yellow-500';
+            verdictText = `Moderate Suitability. Environmental conditions may be stressing the fish.`;
+        } else {
+            scoreBar.className = 'score-bar h-full bg-red-500';
+            verdictText = `Low Suitability. The location is suboptimal, suggesting poor habitat or potential migration.`;
+        }
+        document.getElementById('suitabilityVerdict').innerHTML = verdictText;
+
+        // Position the fish indicator over the score bar
+        const fishIndicator = document.getElementById('suitabilityFishIndicator');
+        fishIndicator.style.left = `${Math.min(100, currentScore)}%`;
+
+        // 3. Migration Prediction
+        const migrationStatus = document.getElementById('migrationStatus');
+        const migrationMessage = document.getElementById('migrationMessage');
+        const targetGridName = targetGrid ? targetGrid.Grid : 'N/A';
+        
+        if (targetGrid) {
+            migrationStatus.className = 'p-5 rounded-xl border-4 border-green-500 bg-green-900/30';
+            migrationMessage.innerHTML = `
+                The current grid score (${currentScore.toFixed(1)}%) is below the ${MIGRATION_THRESHOLD}% threshold. 
+                The AI predicts a migration to the most suitable nearby grid: ${targetGridName}. 
+                This target offers a significantly improved score of ${targetScore.toFixed(1)}%.
+            `;
+            // Update map
+            redrawMap(selectedGridId, targetGridName);
+            positionMapFish(selectedGridId, targetGridName, true);
+
+        } else {
+            migrationStatus.className = 'p-5 rounded-xl border-4 border-cyan-500 bg-cyan-900/30';
+            migrationMessage.innerHTML = `
+                The current grid score (${currentScore.toFixed(1)}%) is considered stable (above ${MIGRATION_THRESHOLD}% or no significantly better migration path found). 
+                The fish is predicted to remain in Grid ${selectedGridId}.
+            `;
+            // Update map
+            redrawMap(selectedGridId, null);
+            positionMapFish(selectedGridId, selectedGridId, false);
+        }
+
+        // 4. Factor Breakdown Table
+        const tbody = document.getElementById('comparisonTableBody');
+        tbody.innerHTML = '';
+        
+        comparisonRows.forEach(row => {
+            const suitabilityPercent = (row.suitability * 100).toFixed(1);
+            const suitabilityClass = row.suitability >= 0.8 ? 'text-green-400' : 
+                                     row.suitability >= 0.5 ? 'text-yellow-400' : 'text-red-400';
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="px-4 py-2 font-bold">${row.factor}</td>
+                <td class="px-4 py-2 text-gray-400">${row.convenient.toFixed(2)} ${row.unit}</td>
+                <td class="px-4 py-2">${row.grid.toFixed(2)} ${row.unit}</td>
+                <td class="px-4 py-2 ${suitabilityClass}">${suitabilityPercent}%</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // --- MIGRATION LOGIC (Finding the best local migration target) ---
+    function findMigrationTarget(currentGridId, currentScore, convenientData) {
+        let bestTarget = null;
+        let maxScore = currentScore;
+        const currentGridData = gridInfo.find(g => g.Grid === currentGridId);
+        
+        if (!currentGridData) return null;
+
+        const [rowChar, colNumStr] = [currentGridId.charAt(0), currentGridId.slice(1)];
+        const rowIndex = GRID_ROWS.indexOf(rowChar);
+        const colIndex = GRID_COLS.indexOf(parseInt(colNumStr));
+
+        // Define neighbors (8-directional check)
+        const neighbors = [];
+        for (let i = -1; i <= 1; i++) {
+            for (let j = -1; j <= 1; j++) {
+                if (i === 0 && j === 0) continue; // Skip current grid
+
+                const newRowIndex = rowIndex + i;
+                const newColIndex = colIndex + j;
+
+                if (newRowIndex >= 0 && newRowIndex < GRID_ROWS.length &&
+                    newColIndex >= 0 && newColIndex < GRID_COLS.length) {
+                    
+                    const neighborId = `${GRID_ROWS[newRowIndex]}${GRID_COLS[newColIndex]}`;
+                    neighbors.push(neighborId);
                 }
             }
-            return data;
         }
 
-        function getFishInsight(fish) {
-            if (fish === 'Puffer') {
-                return `The **Green Spotted Puffer** thrives in environments transitioning from **brackish to fully marine** conditions as it matures. Its ideal factors (Temp: 27-30°C, Salinity: 29-34 PSU, pH: 7.8-8.6) reflect its euryhaline adaptability. The analysis focuses on finding the closest match to these optimal marine-coastal conditions.`; 
-            } else if (fish === 'Bangus') {
-                return `The **Milkfish (Bangus)** is highly **euryhaline** and is often cultured in brackish water, but its adults spawn in marine zones. Its ideal factors (Temp: 28-30°C, Salinity: 32-36 PSU, pH: 8.0-8.4) target the optimal growth stages across different salinity profiles. The migration check is crucial for identifying its ideal lifecycle path.`;
+        // Check each neighbor's suitability
+        neighbors.forEach(neighborId => {
+            const neighborData = gridInfo.find(g => g.Grid === neighborId);
+            if (neighborData) {
+                const { finalScore } = calculateSuitability(neighborData, convenientData);
+                
+                // Migration Condition: Score must be below threshold AND the neighbor must be significantly better
+                if (finalScore > maxScore && 
+                    finalScore - currentScore >= MIGRATION_IMPROVEMENT_MIN) {
+                    
+                    maxScore = finalScore;
+                    bestTarget = neighborData;
+                }
             }
-            return "";
-        }
+        });
 
-        function calculateSuitability(gridData, convenientData) { 
-            let totalSuitabilityScore = 0;
-            const comparisonRows = [];
-
-            factors.forEach(f => {
-                const C = convenientData[f.convenientKey]; 
-                const E = gridData[f.gridKey]; 
-
-                if (typeof C !== 'number' || typeof E !== 'number') return;
-
-                const deviation = Math.abs(C - E);
-                let suitabilityFactor = Math.max(0, 1 - (deviation / f.tolerance));
-
-                totalSuitabilityScore += suitabilityFactor;
-
-                comparisonRows.push({
-                    factor: f.name,
-                    unit: f.unit,
-                    convenient: C,
-                    grid: E,
-                    deviation: deviation,
-                    suitability: suitabilityFactor
-                });
-            });
-
-            const finalScore = (totalSuitabilityScore / factors.length) * 100;
-            return { finalScore, comparisonRows };
+        // Only return a target if the current score is below the general threshold AND a suitable target was found.
+        if (currentScore < MIGRATION_THRESHOLD && bestTarget) {
+            return { grid: bestTarget, score: maxScore };
         }
         
-        // --- CANVAS & VISUALIZATION FUNCTIONS (unchanged in logic) ---
-        function mapGridToCanvas() { 
-            const container = document.getElementById('oceanMapContainer');
-            canvas.width = container.clientWidth;
-            canvas.height = 400; 
+        return null; 
+    }
 
-            const size = canvas.width;
-            const height = canvas.height;
-            const rowCount = GRID_ROWS.length; 
-            const colCount = GRID_COLS.length; 
+    // --- MAIN ANALYSIS FUNCTION ---
+    function runAnalysis() {
+        const fish = document.getElementById('fishSelect').value;
+        const lifeStage = document.getElementById('lifeStageSelect').value;
+        const analysisType = document.getElementById('analysisTypeSelect').value;
 
-            const marginX = size * 0.08; 
-            const marginY = height * 0.08; 
+        if (!fish || !lifeStage) return; // Only need species and stage for grid analysis
 
-            const contentWidth = size - 2 * marginX; 
-            const contentHeight = height - 2 * marginY; 
+        // Show results container
+        document.getElementById('resultsDisplay').classList.remove('hidden');
+        document.getElementById('initialMessage').classList.add('hidden'); 
 
-            const rowSpacing = contentHeight / (rowCount - 1); 
-            const colSpacing = contentWidth / (colCount - 1); 
 
-            gridPoints = {}; 
+        if (analysisType === "Ocean Grid Analysis") {
+            // Clear map highlights and fish indicator for this mode
+            document.getElementById('mapFishIndicator').style.display = 'none';
+            redrawMap(null, null); 
 
-            gridInfo.forEach(data => {
-                const gridId = data.Grid;
-                const row = gridId.charAt(0);
-                const col = parseInt(gridId.charAt(1));
+            // The main display logic for 63-Grid Analysis
+            displayOceanGridAnalysis(fish, lifeStage);
 
-                const rowIndex = GRID_ROWS.indexOf(row);
-                const colIndex = GRID_COLS.indexOf(col);
+        } else {
+            const selectedGridId = document.getElementById('gridSelect').value;
+            if (!selectedGridId) return; // Need grid for migration sim
 
-                const x = marginX + (colIndex * colSpacing);
-                const y = marginY + (rowIndex * rowSpacing);
-
-                gridPoints[gridId] = { x, y, size: VISUAL_GRID_SIZE, data }; 
-            });
-
-            drawAxisLabels(marginX, marginY, colSpacing, rowSpacing); 
-            redrawMap(); 
-        }
-
-        function drawAxisLabels(marginX, marginY, colSpacing, rowSpacing) {
-            const colLabelsDiv = document.getElementById('colLabels');
-            const rowLabelsDiv = document.getElementById('rowLabels');
-            colLabelsDiv.innerHTML = '';
-            rowLabelsDiv.innerHTML = '';
-
-            // Draw Column Labels (1, 2, 3, ...) - Top of the map
-            GRID_COLS.forEach((col, index) => {
-                const x = marginX + (index * colSpacing);
-                const label = document.createElement('div');
-                label.className = 'map-axis-label absolute top-0 font-extrabold';
-                label.textContent = col;
-                label.style.left = `${x}px`;
-                label.style.top = `${marginY - 25}px`;
-                label.style.transform = 'translateX(-50%)';
-                colLabelsDiv.appendChild(label);
-            });
-
-            // Draw Row Labels (A, B, C, ...) - Left of the map
-            GRID_ROWS.forEach((row, index) => {
-                const y = marginY + (index * rowSpacing);
-                const label = document.createElement('div');
-                label.className = 'map-axis-label absolute left-0 font-extrabold';
-                label.textContent = row;
-                label.style.left = `${marginX - 25}px`;
-                label.style.top = `${y}px`;
-                label.style.transform = 'translateY(-50%)';
-                rowLabelsDiv.appendChild(label);
-            });
-        }
-
-        function redrawMap(selectedGrid = null, targetGrid = null) {
-            if (!ctx) return;
-            ctx.clearRect(0, 0, canvas.width, canvas.height); 
+            // Run the Migration Simulation Analysis
+            const convenientData = allConvenientFactors[fish].find(f => f['Life Stages'] === lifeStage);
+            const selectedGridData = gridInfo.find(g => g.Grid === selectedGridId);
             
-            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-            gradient.addColorStop(0, '#111827');
-            gradient.addColorStop(1, '#064e3b');
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            ctx.strokeStyle = '#06b6d4'; 
-            ctx.lineWidth = 2;
-            ctx.strokeRect(0, 0, canvas.width, canvas.height);
-
-            for (const [id, point] of Object.entries(gridPoints)) {
-                let fillColor = '#ffffff'; 
-                let strokeColor = '#22d3ee'; 
-                let strokeWidth = 1.5;
-
-                if (id === ORIGIN_GRID) {
-                    fillColor = '#06b6d4'; 
-                    strokeWidth = 3;
-                    strokeColor = '#ffc300';
-                }
-
-                if (id === selectedGrid) {
-                    fillColor = '#f97316'; 
-                    strokeWidth = 4;
-                    strokeColor = '#ffffff'; 
-                }
-
-                if (id === targetGrid) {
-                    fillColor = '#10b981'; 
-                    strokeWidth = 4;
-                    strokeColor = '#ffffff'; 
-                }
-
-                ctx.beginPath(); 
-                ctx.arc(point.x, point.y, point.size / 2, 0, Math.PI * 2);
-
-                ctx.fillStyle = fillColor;
-                ctx.fill(); 
-
-                ctx.strokeStyle = strokeColor;
-                ctx.lineWidth = strokeWidth;
-                ctx.stroke();
-
-                ctx.fillStyle = '#1e3a8a';
-                ctx.font = `bold 10px Inter`; 
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle'; 
-                ctx.fillText(id, point.x, point.y + 1);
-                ctx.closePath();
-            }
-
-            if (selectedGrid && targetGrid && selectedGrid !== targetGrid) {
-                drawArrow(gridPoints[selectedGrid], gridPoints[targetGrid]);
-            }
-        }
-
-        function drawArrow(start, end) { 
-            ctx.strokeStyle = '#22d3ee'; 
-            ctx.lineWidth = 5;
-            ctx.lineCap = 'round';
-            ctx.shadowBlur = 8;
-            ctx.shadowColor = '#06b6d4'; 
-
-            const headlen = 10; 
-            const angle = Math.atan2(end.y - start.y, end.x - start.x); 
-            const distance = Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2)); 
-
-            const factor = 1 - (end.size / 2) / distance; 
-            const arrowEnd = { x: start.x + (end.x - start.x) * factor, y: start.y + (end.y - start.y) * factor }; 
-
-            const factorStart = (start.size / 2) / distance;
-            const arrowStart = { x: start.x + (end.x - start.x) * factorStart, y: start.y + (end.y - start.y) * factorStart }; 
-
-            ctx.beginPath();
-            ctx.moveTo(arrowStart.x, arrowStart.y);
-            ctx.lineTo(arrowEnd.x, arrowEnd.y);
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.moveTo(arrowEnd.x, arrowEnd.y);
-            ctx.lineTo(arrowEnd.x - headlen * Math.cos(angle - Math.PI / 6), arrowEnd.y - headlen * Math.sin(angle - Math.PI / 6)); 
-            ctx.moveTo(arrowEnd.x, arrowEnd.y);
-            ctx.lineTo(arrowEnd.x - headlen * Math.cos(angle + Math.PI / 6), arrowEnd.y - headlen * Math.sin(angle + Math.PI / 6)); 
-            ctx.stroke();
-
-            ctx.shadowBlur = 0; 
-        }
-
-        function positionMapFish(fromGrid, toGrid, isMigrating = false) { 
-            const mapFishIndicator = document.getElementById('mapFishIndicator');
-            const startPoint = gridPoints[fromGrid];
-            const endPoint = gridPoints[toGrid];
-            if (!startPoint || !endPoint) return; 
-
-            const targetXPercent = (endPoint.x / canvas.width) * 100; 
-            const targetYPercent = (endPoint.y / canvas.height) * 100; 
-
-            mapFishIndicator.style.display = 'block';
-            mapFishIndicator.style.left = `${targetXPercent}%`;
-            mapFishIndicator.style.top = `${targetYPercent}%`;
-
-            let transformValue = 'translate(-50%, -50%)'; 
-
-            if (isMigrating) {
-                const angle = Math.atan2(endPoint.y - startPoint.y, endPoint.x - startPoint.x); 
-                if (angle > Math.PI / 2 || angle < -Math.PI / 2) {
-                    transformValue += ' scaleX(-1)'; 
-                } else {
-                    transformValue += ' scaleX(1)';
-                }
-            } else {
-                transformValue += ' scaleX(1)';
-            }
-            mapFishIndicator.style.transform = transformValue; 
-        }
-
-
-        // --- APPLICATION CONTROL FUNCTIONS (Modified for unselected state) ---
-
-        function initializeApp() {
-            try {
-                // 1. Parse All Data
-                allConvenientFactors.Puffer = parseCSV(PUFFER_CONVENIENT_FACTORS_CSV).filter(row => row.Fish === 'Green spotted puffer');
-                allConvenientFactors.Bangus = parseCSV(BANGUS_CONVENIENT_FACTORS_CSV).filter(row => row.Fish === 'Milkfish (Bangus)');
-                gridInfo = parseCSV(GRID_INFO_CSV); 
-
-                // 2. Setup Canvas
-                canvas = document.getElementById('oceanMapCanvas'); 
-                ctx = canvas.getContext('2d'); 
-
-                const resizeCanvas = () => {
-                    mapGridToCanvas(); 
-                };
-
-                resizeCanvas(); 
-                window.addEventListener('resize', resizeCanvas); 
-
-                // 3. Initial Setup: Call initializeFishData to populate grid options and set initial state
-                initializeFishData();
-
-                // Initial UI state setup
-                document.getElementById('analysisTypeSelect').value = "Migration Simulation";
-                toggleAnalysisMode();
-
-            } catch (error) {
-                console.error("Error during initialization:", error); 
-            }
-        }
-
-        function toggleAnalysisMode() {
-            checkInputs();
-        }
-
-        function initializeFishData() {
-            currentFish = document.getElementById('fishSelect').value;
-            const lifeStageSelect = document.getElementById('lifeStageSelect');
-            const gridSelect = document.getElementById('gridSelect');
-            const aiInsightCard = document.getElementById('aiInsightCard');
-
-            // Always populate Grid Selector (only done once)
-            if (gridSelect.options.length <= 1) { 
-                gridInfo.forEach(data => {
-                    const option = document.createElement('option');
-                    option.value = data.Grid;
-                    option.textContent = `${data.Grid} (${data.Direction.trim()})`;
-                    gridSelect.appendChild(option);
-                });
-            }
-
-            // Reset dependent selectors and fields
-            lifeStageSelect.innerHTML = '<option value="" disabled selected>-- Choose Stage --</option>';
-            gridSelect.value = ""; 
-
-            if (!currentFish) {
-                // No species selected. Set initial UI state.
-                aiInsightCard.innerHTML = '<h2 class="text-lg font-bold text-cyan-400 mb-2">AI Insight</h2><p class="text-sm text-gray-400">Select a species above to view its habitat requirements and migration insights.</p>';
-                document.getElementById('analyzeButton').disabled = true;
-                document.getElementById('resultsDisplay').classList.add('hidden');
-                document.getElementById('initialMessage').classList.remove('hidden');
-                document.getElementById('mapFishIndicator').style.display = 'none';
-                redrawMap(null, null);
+            if (!convenientData || !selectedGridData) {
+                console.error("Missing data for migration analysis.");
                 return;
             }
 
-            const convenientFactors = allConvenientFactors[currentFish];
-            const fishName = (currentFish === 'Puffer') ? 'Green Spotted Puffer' : 'Bangus (Milkfish)';
+            const { finalScore: currentScore, comparisonRows } = calculateSuitability(selectedGridData, convenientData);
 
-            // Update AI Insight with species data
-            aiInsightCard.innerHTML = `<h2 class="text-lg font-bold text-cyan-400 mb-2">AI Insight: ${fishName}</h2><p class="text-sm text-gray-400">${getFishInsight(currentFish)}</p>`;
+            let target = null;
+            if (currentScore < MIGRATION_THRESHOLD) {
+                target = findMigrationTarget(selectedGridId, currentScore, convenientData);
+            }
+            
+            const targetGrid = target ? target.grid : null;
+            const targetScore = target ? target.score : null;
 
-            // Populate Life Stage Selector
-            const lifeStages = [...new Set(convenientFactors.map(f => f['Life Stages']))];
-            lifeStages.forEach(stage => {
-                const option = document.createElement('option');
-                option.value = stage;
-                option.textContent = stage;
-                lifeStageSelect.appendChild(option);
-            });
+            // The main display logic for Migration Simulation
+            displayMigrationSimulation(selectedGridId, currentScore, comparisonRows, targetGrid, targetScore);
+        }
+    }
 
-            // Re-run input check to update button state
-            checkInputs(); 
+
+    // --- CANVAS & VISUALIZATION FUNCTIONS (unchanged in logic) ---
+    function mapGridToCanvas() { 
+        const container = document.getElementById('oceanMapContainer');
+        canvas.width = container.clientWidth;
+        canvas.height = 400; 
+
+        const size = canvas.width;
+        const height = canvas.height;
+        const rowCount = GRID_ROWS.length; 
+        const colCount = GRID_COLS.length; 
+
+        const marginX = size * 0.08; 
+        const marginY = height * 0.08; 
+
+        const contentWidth = size - 2 * marginX; 
+        const contentHeight = height - 2 * marginY; 
+
+        const rowSpacing = contentHeight / (rowCount - 1); 
+        const colSpacing = contentWidth / (colCount - 1); 
+
+        gridPoints = {}; 
+
+        gridInfo.forEach(data => {
+            const gridId = data.Grid;
+            const row = gridId.charAt(0);
+            const col = parseInt(gridId.charAt(1));
+
+            const rowIndex = GRID_ROWS.indexOf(row);
+            const colIndex = GRID_COLS.indexOf(col);
+
+            const x = marginX + (colIndex * colSpacing);
+            const y = marginY + (rowIndex * rowSpacing);
+
+            gridPoints[gridId] = { x, y, size: VISUAL_GRID_SIZE, data }; 
+        });
+
+        drawAxisLabels(marginX, marginY, colSpacing, rowSpacing); 
+        redrawMap(); 
+    }
+
+    function drawAxisLabels(marginX, marginY, colSpacing, rowSpacing) {
+        const colLabelsDiv = document.getElementById('colLabels');
+        const rowLabelsDiv = document.getElementById('rowLabels');
+        colLabelsDiv.innerHTML = '';
+        rowLabelsDiv.innerHTML = '';
+
+        // Draw Column Labels (1, 2, 3, ...) - Top of the map
+        GRID_COLS.forEach((col, index) => {
+            const x = marginX + (index * colSpacing);
+            const label = document.createElement('div');
+            label.className = 'map-axis-label absolute top-0 font-extrabold';
+            label.textContent = col;
+            label.style.left = `${x}px`;
+            label.style.top = `${marginY - 25}px`;
+            label.style.transform = 'translateX(-50%)';
+            colLabelsDiv.appendChild(label);
+        });
+
+        // Draw Row Labels (A, B, C, ...) - Left of the map
+        GRID_ROWS.forEach((row, index) => {
+            const y = marginY + (index * rowSpacing);
+            const label = document.createElement('div');
+            label.className = 'map-axis-label absolute left-0 font-extrabold';
+            label.textContent = row;
+            label.style.left = `${marginX - 25}px`;
+            label.style.top = `${y}px`;
+            label.style.transform = 'translateY(-50%)';
+            rowLabelsDiv.appendChild(label);
+        });
+    }
+
+    function redrawMap(selectedGrid = null, targetGrid = null) {
+        if (!ctx) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height); 
+        
+        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        gradient.addColorStop(0, '#111827');
+        gradient.addColorStop(1, '#064e3b');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.strokeStyle = '#06b6d4'; 
+        ctx.lineWidth = 2;
+        ctx.strokeRect(0, 0, canvas.width, canvas.height);
+
+        for (const [id, point] of Object.entries(gridPoints)) {
+            let fillColor = '#ffffff'; 
+            let strokeColor = '#22d3ee'; 
+            let strokeWidth = 1.5;
+
+            if (id === ORIGIN_GRID) {
+                fillColor = '#06b6d4'; 
+                strokeWidth = 3;
+                strokeColor = '#ffc300';
+            }
+
+            if (id === selectedGrid) {
+                fillColor = '#f97316'; 
+                strokeWidth = 4;
+                strokeColor = '#ffffff'; 
+            }
+
+            if (id === targetGrid) {
+                fillColor = '#10b981'; 
+                strokeWidth = 4;
+                strokeColor = '#ffffff'; 
+            }
+
+            ctx.beginPath(); 
+            ctx.arc(point.x, point.y, point.size / 2, 0, Math.PI * 2);
+
+            ctx.fillStyle = fillColor;
+            ctx.fill(); 
+
+            ctx.strokeStyle = strokeColor;
+            ctx.lineWidth = strokeWidth;
+            ctx.stroke();
+
+            ctx.fillStyle = '#1e3a8a';
+            ctx.font = `bold 10px Inter`; 
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle'; 
+            ctx.fillText(id, point.x, point.y + 1);
+            ctx.closePath();
         }
 
-        function checkInputs() { 
-            const selectedFish = document.getElementById('fishSelect').value;
-            const lifeStage = document.getElementById('lifeStageSelect').value;
-            const selectedGrid = document.getElementById('gridSelect').value;
-            const button = document.getElementById('analyzeButton');
-            
-            // Button is enabled ONLY if all three selectors have a value
-            button.disabled = !(selectedFish && lifeStage && selectedGrid); 
+        if (selectedGrid && targetGrid && selectedGrid !== targetGrid) {
+            drawArrow(gridPoints[selectedGrid], gridPoints[targetGrid]);
+        }
+    }
 
-            if (selectedFish && lifeStage && selectedGrid) {
-                document.getElementById('initialMessage').classList.add('hidden'); 
-                document.getElementById('resultsDisplay').classList.add('hidden'); 
+    function drawArrow(start, end) { 
+        ctx.strokeStyle = '#22d3ee'; 
+        ctx.lineWidth = 5;
+        ctx.lineCap = 'round';
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = '#06b6d4'; 
+
+        const headlen = 10; 
+        const angle = Math.atan2(end.y - start.y, end.x - start.x); 
+        const distance = Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2)); 
+
+        const factor = 1 - (end.size / 2) / distance; 
+        const arrowEnd = { x: start.x + (end.x - start.x) * factor, y: start.y + (end.y - start.y) * factor }; 
+
+        const factorStart = (start.size / 2) / distance;
+        const arrowStart = { x: start.x + (end.x - start.x) * factorStart, y: start.y + (end.y - start.y) * factorStart }; 
+
+        ctx.beginPath();
+        ctx.moveTo(arrowStart.x, arrowStart.y);
+        ctx.lineTo(arrowEnd.x, arrowEnd.y);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(arrowEnd.x, arrowEnd.y);
+        ctx.lineTo(arrowEnd.x - headlen * Math.cos(angle - Math.PI / 6), arrowEnd.y - headlen * Math.sin(angle - Math.PI / 6)); 
+        ctx.moveTo(arrowEnd.x, arrowEnd.y);
+        ctx.lineTo(arrowEnd.x - headlen * Math.cos(angle + Math.PI / 6), arrowEnd.y - headlen * Math.sin(angle + Math.PI / 6)); 
+        ctx.stroke();
+
+        ctx.shadowBlur = 0; 
+    }
+
+    function positionMapFish(fromGrid, toGrid, isMigrating = false) { 
+        const mapFishIndicator = document.getElementById('mapFishIndicator');
+        const startPoint = gridPoints[fromGrid];
+        const endPoint = gridPoints[toGrid];
+        if (!startPoint || !endPoint) return; 
+
+        const targetXPercent = (endPoint.x / canvas.width) * 100; 
+        const targetYPercent = (endPoint.y / canvas.height) * 100; 
+
+        mapFishIndicator.style.display = 'block';
+        mapFishIndicator.style.left = `${targetXPercent}%`;
+        mapFishIndicator.style.top = `${targetYPercent}%`;
+
+        let transformValue = 'translate(-50%, -50%)'; 
+
+        if (isMigrating) {
+            const angle = Math.atan2(endPoint.y - startPoint.y, endPoint.x - startPoint.x); 
+            if (angle > Math.PI / 2 || angle < -Math.PI / 2) {
+                transformValue += ' scaleX(-1)'; 
+            } else {
+                transformValue += ' scaleX(1)';
+            }
+        } else {
+            transformValue += ' scaleX(1)';
+        }
+        mapFishIndicator.style.transform = transformValue; 
+    }
+
+
+    // --- APPLICATION CONTROL FUNCTIONS ---
+
+    function initializeApp() {
+        try {
+            // 1. Parse All Data
+            allConvenientFactors.Puffer = parseCSV(PUFFER_CONVENIENT_FACTORS_CSV).filter(row => row.Fish === 'Green spotted puffer');
+            allConvenientFactors.Bangus = parseCSV(BANGUS_CONVENIENT_FACTORS_CSV).filter(row => row.Fish === 'Milkfish (Bangus)');
+            gridInfo = parseCSV(GRID_INFO_CSV); 
+
+            // 2. Setup Canvas
+            canvas = document.getElementById('oceanMapCanvas'); 
+            ctx = canvas.getContext('2d'); 
+
+            const resizeCanvas = () => {
+                mapGridToCanvas(); 
+            };
+
+            resizeCanvas(); 
+            window.addEventListener('resize', resizeCanvas); 
+
+            // 3. Initial Setup
+            initializeFishData();
+
+            // Set initial mode UI
+            document.getElementById('analysisTypeSelect').value = "Migration Simulation";
+            toggleAnalysisMode();
+
+        } catch (error) {
+            console.error("Error during initialization:", error); 
+        }
+    }
+
+    function toggleAnalysisMode() {
+        const analysisType = document.getElementById('analysisTypeSelect').value;
+        const runButton = document.getElementById('analyzeButton');
+        const scoreCard = document.getElementById('scoreBar').closest('.p-5');
+        const migrationStatus = document.getElementById('migrationStatus');
+        const gridSelectControl = document.getElementById('gridSelectControl');
+        const oceanMapCard = document.getElementById('oceanMapCard'); // Reference to the map card
+        
+        // Always check inputs to update button state
+        checkInputs(); 
+
+        if (analysisType === 'Migration Simulation') {
+            // UI for Migration Simulation
+            runButton.textContent = 'Run Analysis & Migration Check 🐠';
+            document.getElementById('mainTitle').textContent = 'AQUARIS AI - Otolith Analysis';
+            scoreCard.classList.remove('hidden');
+            migrationStatus.classList.remove('hidden');
+            gridSelectControl.classList.remove('hidden'); // Show grid selector
+            oceanMapCard.classList.remove('hidden'); // Show map visualization
+            setTableForFactorBreakdown(); 
+
+        } else if (analysisType === 'Ocean Grid Analysis') {
+            // UI for Ocean Grid Analysis
+            runButton.textContent = 'Run 63-Grid Suitability Check 🌊';
+            document.getElementById('mainTitle').textContent = 'AQUARIS AI - Ocean Grid Analysis';
+            scoreCard.classList.remove('hidden'); 
+            migrationStatus.classList.add('hidden'); // Hide migration status
+            gridSelectControl.classList.add('hidden'); // Hide grid selector
+            oceanMapCard.classList.add('hidden'); // HIDE map visualization
+            setTableForGridAnalysis(); 
+
+            // Clear previous results view
+            document.getElementById('resultsDisplay').classList.add('hidden');
+            document.getElementById('initialMessage').classList.remove('hidden');
+            document.getElementById('mapFishIndicator').style.display = 'none';
+            redrawMap(null, null);
+        }
+    }
+
+    function initializeFishData() {
+        currentFish = document.getElementById('fishSelect').value;
+        const lifeStageSelect = document.getElementById('lifeStageSelect');
+        const gridSelect = document.getElementById('gridSelect');
+        const aiInsightCard = document.getElementById('aiInsightCard');
+
+        // Always populate Grid Selector (only done once)
+        if (gridSelect.options.length <= 1) { 
+            gridInfo.forEach(data => {
+                const option = document.createElement('option');
+                option.value = data.Grid;
+                option.textContent = `${data.Grid} (${data.Direction.trim()})`;
+                gridSelect.appendChild(option);
+            });
+        }
+
+        // Reset dependent selectors and fields
+        lifeStageSelect.innerHTML = '<option value="" disabled selected>-- Choose Stage --</option>';
+        gridSelect.value = ""; 
+
+        if (!currentFish) {
+            // No species selected. Set initial UI state.
+            aiInsightCard.innerHTML = '<h2 class="text-lg font-bold text-cyan-400 mb-2">AI Insight</h2><p class="text-sm text-gray-400">Select a species above to view its habitat requirements and migration insights.</p>';
+            checkInputs(); // Disable button
+            document.getElementById('mapFishIndicator').style.display = 'none';
+            redrawMap(null, null);
+            return;
+        }
+
+        const convenientFactors = allConvenientFactors[currentFish];
+        const fishName = (currentFish === 'Puffer') ? 'Green Spotted Puffer' : 'Bangus (Milkfish)';
+
+        // Update AI Insight with species data
+        aiInsightCard.innerHTML = `<h2 class="text-lg font-bold text-cyan-400 mb-2">AI Insight: ${fishName}</h2><p class="text-sm text-gray-400">${getFishInsight(currentFish)}</p>`;
+
+        // Populate Life Stage Selector
+        const lifeStages = [...new Set(convenientFactors.map(f => f['Life Stages']))];
+        lifeStages.forEach(stage => {
+            const option = document.createElement('option');
+            option.value = stage;
+            option.textContent = stage;
+            lifeStageSelect.appendChild(option);
+        });
+
+        // Re-run input check and mode check to update button/UI state
+        checkInputs(); 
+        toggleAnalysisMode();
+    }
+
+    function checkInputs() { 
+        const selectedFish = document.getElementById('fishSelect').value;
+        const lifeStage = document.getElementById('lifeStageSelect').value;
+        const selectedGrid = document.getElementById('gridSelect').value;
+        const analysisType = document.getElementById('analysisTypeSelect').value;
+        const button = document.getElementById('analyzeButton');
+
+        let isReady = false;
+
+        if (analysisType === 'Migration Simulation') {
+            // Migration requires Fish, Stage, AND Grid
+            isReady = (selectedFish && lifeStage && selectedGrid); 
+        } else if (analysisType === 'Ocean Grid Analysis') {
+            // Grid Analysis requires only Fish and Stage
+            isReady = (selectedFish && lifeStage);
+        }
+        
+        button.disabled = !isReady; 
+
+        // Update initial message visibility based on readiness for the current mode
+        const initialMessage = document.getElementById('initialMessage');
+        const resultsDisplay = document.getElementById('resultsDisplay');
+        const mapFishIndicator = document.getElementById('mapFishIndicator');
+
+        if (isReady) {
+            initialMessage.classList.add('hidden'); 
+            resultsDisplay.classList.add('hidden'); // Hide results until analysis is run
+            
+            // Only update map and fish if we're in Migration Simulation mode with a selected grid
+            if (analysisType === 'Migration Simulation' && selectedGrid) {
                 redrawMap(selectedGrid, null);
                 if (gridPoints[selectedGrid]) { 
                     positionMapFish(selectedGrid, selectedGrid, false);
                 }
             } else {
-                document.getElementById('initialMessage').classList.remove('hidden'); 
-                document.getElementById('resultsDisplay').classList.add('hidden'); 
+                // Clear map indicators for Ocean Grid Analysis
+                mapFishIndicator.style.display = 'none';
+                redrawMap(null, null); 
             }
+        } else {
+            // If not ready, show the initial message and hide results
+            initialMessage.classList.remove('hidden'); 
+            resultsDisplay.classList.add('hidden'); 
+            mapFishIndicator.style.display = 'none';
+            redrawMap(null, null);
         }
-
-        function runAnalysis() { 
-            const selectedLifeStage = document.getElementById('lifeStageSelect').value;
-            const selectedGrid = document.getElementById('gridSelect').value;
-            const convenientFactors = allConvenientFactors[currentFish];
-
-            const convenientData = convenientFactors.find(f => f['Life Stages'] === selectedLifeStage); 
-            const selectedGridData = gridInfo.find(g => g.Grid === selectedGrid); 
-
-            if (!convenientData || !selectedGridData) return;
-
-            const { finalScore, comparisonRows } = calculateSuitability(selectedGridData, convenientData);
-
-            let migrationTarget = selectedGrid;
-            let migrationMessage = `Suitability is **Excellent** (${finalScore.toFixed(1)}%). The ${currentFish === 'Puffer' ? 'Puffer' : 'Bangus'} remains in Grid ${selectedGrid}.`; 
-            let messageClass = "border-green-400 bg-green-900/50 text-green-400"; // Dark Mode Green
-            let isMigrating = false;
-
-            if (finalScore < MIGRATION_THRESHOLD) { 
-                let bestScore = -1;
-                let bestGridId = selectedGrid;
-                
-                gridInfo.forEach(potentialGridData => {
-                    const { finalScore: potentialScore } = calculateSuitability(potentialGridData, convenientData);
-                    if (potentialScore > bestScore) {
-                        bestScore = potentialScore;
-                        bestGridId = potentialGridData.Grid;
-                    }
-                });
-
-                if (bestGridId !== selectedGrid && bestScore > finalScore + MIGRATION_IMPROVEMENT_MIN) { 
-                    migrationTarget = bestGridId; 
-                    migrationMessage = `Suitability is **LOW** (${finalScore.toFixed(1)}%). The fish is predicted to **MIGRATE** from Grid ${selectedGrid} to Grid ${bestGridId}. (Target Suitability: ${bestScore.toFixed(1)}%).`; 
-                    messageClass = "border-red-400 bg-red-900/50 text-red-400"; // Dark Mode Red
-                    isMigrating = true; 
-                } else {
-                    migrationTarget = selectedGrid; 
-                    migrationMessage = `Suitability is **LOW** (${finalScore.toFixed(1)}%), but the fish **STAYS** as no other tested location offers significantly better conditions (Max Potential: ${bestScore.toFixed(1)}%).`; 
-                    messageClass = "border-yellow-400 bg-yellow-900/50 text-yellow-400"; // Dark Mode Yellow
-                    isMigrating = false; 
-                }
-            }
-
-            displayResults(finalScore, comparisonRows, selectedGridData.Direction, migrationTarget, migrationMessage, messageClass, selectedGrid, isMigrating);
-        }
-
-        function displayResults(score, rows, gridDirection, targetGrid, migrationMessage, messageClass, selectedGrid, isMigrating) { 
-            const resultsDisplay = document.getElementById('resultsDisplay'); 
-            const scoreText = document.getElementById('scoreText'); 
-            const scoreBar = document.getElementById('scoreBar'); 
-            const tableBody = document.getElementById('comparisonTableBody'); 
-            const suitabilityVerdict = document.getElementById('suitabilityVerdict'); 
-            const migrationStatusDiv = document.getElementById('migrationStatus'); 
-            const migrationMsgP = document.getElementById('migrationMessage'); 
-            const suitabilityFishIndicator = document.getElementById('suitabilityFishIndicator'); 
-
-            resultsDisplay.classList.remove('hidden');
-
-            // --- 1. Suitability Verdict and Score Bar ---
-            let verdict, barColor;
-            let textClass = 'text-gray-400';
-            if (score >= 90) { 
-                verdict = "Verdict: Excellent Match. Factors are near-perfect for this life stage. Optimal habitat.";
-                barColor = 'bg-green-500';
-                textClass = 'text-green-400';
-            } else if (score >= 70) { 
-                verdict = "Verdict: Good Match. Generally suitable, minor factor deviations. Stable habitat.";
-                barColor = 'bg-lime-500';
-                textClass = 'text-lime-400';
-            } else if (score >= 50) { 
-                verdict = "Verdict: Moderate Match. Notable factor deviations. Migration is probable if significantly better habitat is available.";
-                barColor = 'bg-yellow-500';
-                textClass = 'text-yellow-400';
-            } else { 
-                verdict = "Verdict: Poor Match. Highly unsuitable. Migration is strongly predicted.";
-                barColor = 'bg-red-500';
-                textClass = 'text-red-400';
-            }
-
-            scoreText.textContent = `${score.toFixed(1)}%`; 
-            suitabilityVerdict.textContent = verdict; 
-            suitabilityVerdict.className = `mt-3 text-sm italic font-medium ${textClass}`;
-            scoreBar.style.width = `${score.toFixed(1)}%`; 
-            scoreBar.className = `score-bar h-full rounded-lg ${barColor}`; 
-
-            let fishPosition = score.toFixed(1); 
-            let transformStyle = 'translate(-50%, -50%) scaleX(1)';
-            if (score < 50) {
-                transformStyle = 'translate(-50%, -50%) scaleX(-1)'; 
-            }
-            suitabilityFishIndicator.style.left = `${fishPosition}%`; 
-            suitabilityFishIndicator.style.transform = transformStyle; 
-
-            // --- 2. Migration Status & Comparison Table ---
-            migrationStatusDiv.className = `p-5 rounded-xl border-4 ${messageClass}`; 
-            migrationMsgP.innerHTML = migrationMessage; 
-            tableBody.innerHTML = ''; 
-            rows.forEach(row => {
-                const tr = document.createElement('tr');
-                let suitabilityClass = 'text-gray-300';
-                if (row.suitability >= 0.85) suitabilityClass = 'text-green-400 font-bold';
-                else if (row.suitability < 0.5) suitabilityClass = 'text-red-400 font-bold';
-                
-                tr.innerHTML = `
-                    <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-300">${row.factor}</td>
-                    <td class="px-4 py-3 whitespace-nowrap text-sm text-cyan-400 font-medium">${row.convenient.toFixed(2)} ${row.unit}</td>
-                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-300">${row.grid.toFixed(2)} ${row.unit}</td>
-                    <td class="px-4 py-3 whitespace-nowrap text-sm ${suitabilityClass}">${(row.suitability * 100).toFixed(1)}%</td>
-                `;
-                tableBody.appendChild(tr); 
-            });
-
-            // --- 3. Update Map Visualization ---
-            redrawMap(selectedGrid, targetGrid);
-            if (gridPoints[selectedGrid] && gridPoints[targetGrid]) {
-                positionMapFish(selectedGrid, targetGrid, isMigrating); 
-            }
-        }
-
-        // Start the application when the window loads
-        window.onload = initializeApp;
-    </script>
+    }
+    
+    // Initial call to start the application
+    window.onload = initializeApp;
+</script>
 </body>
 </html>

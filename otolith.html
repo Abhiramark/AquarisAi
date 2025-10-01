@@ -1,36 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>AQUARIS AI-Otolith Analysis</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css?family=Inter:wght@400;600;700;800&display=swap');
         
-        /* 1. Base Styling - Matching index.html */
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #0d0d0d; /* Very dark, almost black */
+            background-color: #0d0d0d;
             color: white;
-            /* Added space for the fixed header */
-            padding-top: 5rem; 
+            padding-top: 5rem;
         }
-        
-        /* 2. Card and Panel Styling - Dark Background */
         .card {
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); /* Stronger shadow on dark mode */
-            border: 1px solid #1f2937; /* Dark gray border */
-            background-color: #1f2937; /* bg-gray-800 for cards */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 1px solid #1f2937;
+            background-color: #1f2937;
             border-radius: 1rem;
         }
-        
-        /* Removed header-bg styling */
-        
-        /* 4. Suitability Bar Styles */
         .score-bar-container {
             height: 1.75rem;
-            background-color: #0f172a; /* Dark slate background */
+            background-color: #0f172a;
             border-radius: 0.8rem;
             overflow: hidden;
             position: relative;
@@ -46,27 +38,19 @@
             pointer-events: none;
             z-index: 10;
         }
-        
-        /* 5. Map Styling (Deep Ocean Look) */
         #oceanMapCanvas {
-            background: linear-gradient(180deg, #111827 0%, #064e3b 100%); /* Deep dark blue to dark teal gradient */
-            border: 4px solid #06b6d4; /* Cyan border */
+            background: linear-gradient(180deg, #111827 0%, #064e3b 100%);
+            border: 4px solid #06b6d4;
         }
-
-        /* Map Axis Labels - High Contrast */
         .map-axis-label {
-            color: #22d3ee; /* Cyan for labels */
+            color: #22d3ee;
             text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
         }
-
-        /* 6. Button and Select Focus - Cyan Focus Ring */
         .focus-ring-cyan:focus {
-            border-color: #06b6d4; /* cyan-500 */
-            box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.4); /* cyan-500 with transparency */
+            border-color: #06b6d4;
+            box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.4);
         }
-        
-        /* Text Color adjustments for dark mode readability */
-        .text-cyan-700 { color: #0e7490; } /* Darker cyan for contrast on light cyan elements */
+        .text-cyan-700 { color: #0e7490; }
     </style>
 </head>
 <body class="min-h-screen">
@@ -85,7 +69,6 @@
     <div class="max-w-7xl mx-auto p-4 sm:p-8">
         <div class="text-center mt-6 mb-10 pt-4"> 
             <h1 id="mainTitle" class="text-4xl sm:text-5xl font-extrabold tracking-tight text-cyan-400">AQUARIS AI-Otolith Analysis</h1>
-            
         </div>
 
         <main>
@@ -95,8 +78,6 @@
                         <label for="fishSelect" class="block text-sm font-semibold text-gray-300 mb-2">1. Select Species:</label>
                         <select id="fishSelect" class="w-full p-3 border border-cyan-400 bg-gray-900 text-white rounded-lg focus-ring-cyan transition duration-150 text-base" onchange="initializeFishData()">
                             <option value="" disabled selected>-- Select Species --</option>
-                            <option value="Puffer">Green Spotted Puffer</option>
-                            <option value="Bangus">Bangus (Milkfish)</option>
                         </select>
                     </div>
                     
@@ -112,7 +93,7 @@
                         <label for="lifeStageSelect" class="block text-sm font-semibold text-gray-300 mb-2">3. Select Life Stage:</label>
                         <select id="lifeStageSelect" class="w-full p-3 border border-cyan-400 bg-gray-900 text-white rounded-lg focus-ring-cyan transition duration-150 text-base" onchange="checkInputs()">
                             <option value="" disabled selected>-- Choose Stage --</option>
-                            </select>
+                        </select>
                     </div>
                 </div>
 
@@ -130,12 +111,19 @@
                             <label for="gridSelect" class="block text-sm font-medium text-gray-300 mb-1">Select Potential Habitat (Grid):</label>
                             <select id="gridSelect" class="w-full p-3 rounded-lg border border-gray-700 bg-gray-900 text-white focus-ring-cyan transition duration-150" onchange="checkInputs()">
                                 <option value="" disabled selected>Choose a Grid Location</option>
-                                </select>
+                            </select>
                         </div>
                         <button onclick="runAnalysis()" id="analyzeButton" class="w-full bg-cyan-500 text-gray-900 py-3 rounded-xl font-bold text-lg shadow-md hover:bg-cyan-600 transition duration-300 disabled:opacity-50 disabled:shadow-none" disabled>
                             Run Analysis & Migration Check 🐠
                         </button>
                     </div>
+
+                          </div>
+                        <button onclick="runAnalysis()" id="gridAnalysisButton" class="w-full bg-cyan-500 text-gray-900 py-3 rounded-xl font-bold text-lg shadow-md hover:bg-cyan-600 transition duration-300 disabled:opacity-50 disabled:shadow-none" disabled>
+                            Run 63 Grid Suitability Check 🌊
+                        </button>
+                    </div>
+
 
                     <div id="oceanMapCard" class="card p-4 border-gray-700">
                         <h2 class="text-xl font-extrabold mb-2 text-cyan-400 border-b border-gray-700 pb-2">9x7 Ocean Grid Visualization</h2>
@@ -144,7 +132,7 @@
                                 <div id="colLabels" class="absolute top-0 left-0 w-full h-full pointer-events-none"></div>
                                 <div id="rowLabels" class="absolute top-0 left-0 w-full h-full pointer-events-none"></div>
                                 <canvas id="oceanMapCanvas"></canvas>
-                                <span id="mapFishIndicator" class="transition-all duration-700 text-3xl z-20" style="display: none;">🐟</span>
+                                <span id="mapFishIndicator" class="transition-all duration-700 text-3xl z-20" style="display: none;"></span>
                                 
                                 <div id="mapLegend" class="absolute -bottom-6 left-1/2 -translate-x-1/2 flex flex-wrap justify-center space-x-3 text-xs font-bold bg-gray-900/80 backdrop-blur-sm px-4 py-2 rounded-xl shadow-lg border border-cyan-500">
                                     <span class="text-cyan-400">● Origin (E4)</span>
@@ -202,6 +190,9 @@
             </div>
         </main>
     </div>
+
+  
+
     <script>
     // --- DATA SETUP (Constants unchanged) ---
     const PUFFER_CONVENIENT_FACTORS_CSV = `Fish,Life Stages,Duration (Weeks),Life time (Weeks),Convenient Temperature( degree C),Convenient Salinity(PSU),Convenient pH
@@ -402,13 +393,10 @@ I7,30.025,36.503,8.149,South-east`;
                 bestGrid.grid = grid.Grid;
             }
 
-            // Determine color class based on score
             const fbClass = finalScore >= 80 ? 'text-green-400 font-bold' :
                             finalScore >= 50 ? 'text-yellow-400 font-bold' : 'text-red-400 font-bold';
             
-            // Create a row for the grid data
             const tr = document.createElement('tr');
-            // Highlight the best-suited grid
             if (grid.Grid === bestGrid.grid) { 
                  tr.className = 'bg-cyan-900/40 border-l-4 border-cyan-500';
             }
@@ -426,18 +414,11 @@ I7,30.025,36.503,8.149,South-east`;
 
         // Update the main score card to show the best grid in this mode
         document.getElementById('scoreText').textContent = `${bestGrid.score.toFixed(1)}%`;
-        
-        // Update the verdict message for Grid Analysis
-        const fishName = (fish === 'Puffer') ? 'Green Spotted Puffer' : 'Bangus (Milkfish)';
         document.getElementById('suitabilityVerdict').innerHTML = `
-            The overall most suitable location for a ${lifeStage} ${fishName} is Grid ${bestGrid.grid} with a score of ${bestGrid.score.toFixed(1)}%.
+            The overall most suitable location for a ${lifeStage} ${(fish === 'Puffer') ? 'Green Spotted Puffer' : 'Bangus (Milkfish)'} is Grid ${bestGrid.grid} with a score of ${bestGrid.score.toFixed(1)}%.
         `;
-
-        // Position the fish indicator over the score bar (showing best score position)
         const fishIndicator = document.getElementById('suitabilityFishIndicator');
         fishIndicator.style.left = `${Math.min(100, bestGrid.score)}%`;
-
-        // Update score bar color based on the best score
         const scoreBar = document.getElementById('scoreBar');
         scoreBar.style.width = `${bestGrid.score.toFixed(1)}%`;
         if (bestGrid.score >= 90) {
@@ -449,17 +430,20 @@ I7,30.025,36.503,8.149,South-east`;
         } else {
             scoreBar.className = 'score-bar h-full bg-red-500';
         }
-    }
 
+        // For Ocean Grid Analysis we DO show the grid breakdown table but we DO NOT want the overall habitat card to appear in the UI.
+        // However some parts of the resultsDisplay are shared; the toggleAnalysisMode() handles hiding the overall card when in ocean mode.
+        // Keep resultsDisplay visible for the table content:
+        document.getElementById('resultsDisplay').classList.remove('hidden');
+        document.getElementById('initialMessage').classList.add('hidden');
+    }
 
     // --- MIGRATION SIMULATION DISPLAY ---
     function displayMigrationSimulation(selectedGridId, currentScore, comparisonRows, targetGrid, targetScore) {
         setTableForFactorBreakdown(); // Set headers for the Factor Breakdown
         
-        // Ensure Migration Status is visible for this mode
         document.getElementById('migrationStatus').classList.remove('hidden');
         
-        // 2. Suitability Bar & Score Text
         document.getElementById('scoreText').textContent = `${currentScore.toFixed(1)}%`;
         const scoreBar = document.getElementById('scoreBar');
         scoreBar.style.width = `${currentScore.toFixed(1)}%`;
@@ -480,11 +464,9 @@ I7,30.025,36.503,8.149,South-east`;
         }
         document.getElementById('suitabilityVerdict').innerHTML = verdictText;
 
-        // Position the fish indicator over the score bar
         const fishIndicator = document.getElementById('suitabilityFishIndicator');
         fishIndicator.style.left = `${Math.min(100, currentScore)}%`;
 
-        // 3. Migration Prediction
         const migrationStatus = document.getElementById('migrationStatus');
         const migrationMessage = document.getElementById('migrationMessage');
         const targetGridName = targetGrid ? targetGrid.Grid : 'N/A';
@@ -496,7 +478,6 @@ I7,30.025,36.503,8.149,South-east`;
                 The AI predicts a migration to the most suitable nearby grid: ${targetGridName}. 
                 This target offers a significantly improved score of ${targetScore.toFixed(1)}%.
             `;
-            // Update map
             redrawMap(selectedGridId, targetGridName);
             positionMapFish(selectedGridId, targetGridName, true);
 
@@ -506,12 +487,10 @@ I7,30.025,36.503,8.149,South-east`;
                 The current grid score (${currentScore.toFixed(1)}%) is considered stable (above ${MIGRATION_THRESHOLD}% or no significantly better migration path found). 
                 The fish is predicted to remain in Grid ${selectedGridId}.
             `;
-            // Update map
             redrawMap(selectedGridId, null);
             positionMapFish(selectedGridId, selectedGridId, false);
         }
 
-        // 4. Factor Breakdown Table
         const tbody = document.getElementById('comparisonTableBody');
         tbody.innerHTML = '';
         
@@ -542,11 +521,10 @@ I7,30.025,36.503,8.149,South-east`;
         const rowIndex = GRID_ROWS.indexOf(rowChar);
         const colIndex = GRID_COLS.indexOf(parseInt(colNumStr));
 
-        // Define neighbors (8-directional check)
         const neighbors = [];
         for (let i = -1; i <= 1; i++) {
             for (let j = -1; j <= 1; j++) {
-                if (i === 0 && j === 0) continue; // Skip current grid
+                if (i === 0 && j === 0) continue;
 
                 const newRowIndex = rowIndex + i;
                 const newColIndex = colIndex + j;
@@ -560,13 +538,11 @@ I7,30.025,36.503,8.149,South-east`;
             }
         }
 
-        // Check each neighbor's suitability
         neighbors.forEach(neighborId => {
             const neighborData = gridInfo.find(g => g.Grid === neighborId);
             if (neighborData) {
                 const { finalScore } = calculateSuitability(neighborData, convenientData);
                 
-                // Migration Condition: Score must be below threshold AND the neighbor must be significantly better
                 if (finalScore > maxScore && 
                     finalScore - currentScore >= MIGRATION_IMPROVEMENT_MIN) {
                     
@@ -576,7 +552,6 @@ I7,30.025,36.503,8.149,South-east`;
             }
         });
 
-        // Only return a target if the current score is below the general threshold AND a suitable target was found.
         if (currentScore < MIGRATION_THRESHOLD && bestTarget) {
             return { grid: bestTarget, score: maxScore };
         }
@@ -590,26 +565,20 @@ I7,30.025,36.503,8.149,South-east`;
         const lifeStage = document.getElementById('lifeStageSelect').value;
         const analysisType = document.getElementById('analysisTypeSelect').value;
 
-        if (!fish || !lifeStage) return; // Only need species and stage for grid analysis
+        if (!fish || !lifeStage) return;
 
-        // Show results container
         document.getElementById('resultsDisplay').classList.remove('hidden');
         document.getElementById('initialMessage').classList.add('hidden'); 
 
-
         if (analysisType === "Ocean Grid Analysis") {
-            // Clear map highlights and fish indicator for this mode
             document.getElementById('mapFishIndicator').style.display = 'none';
-            redrawMap(null, null); 
-
-            // The main display logic for 63-Grid Analysis
+            redrawMap(null, null);
+            // Only run the 63-grid analysis
             displayOceanGridAnalysis(fish, lifeStage);
-
         } else {
             const selectedGridId = document.getElementById('gridSelect').value;
-            if (!selectedGridId) return; // Need grid for migration sim
+            if (!selectedGridId) return;
 
-            // Run the Migration Simulation Analysis
             const convenientData = allConvenientFactors[fish].find(f => f['Life Stages'] === lifeStage);
             const selectedGridData = gridInfo.find(g => g.Grid === selectedGridId);
             
@@ -628,7 +597,6 @@ I7,30.025,36.503,8.149,South-east`;
             const targetGrid = target ? target.grid : null;
             const targetScore = target ? target.score : null;
 
-            // The main display logic for Migration Simulation
             displayMigrationSimulation(selectedGridId, currentScore, comparisonRows, targetGrid, targetScore);
         }
     }
@@ -637,6 +605,8 @@ I7,30.025,36.503,8.149,South-east`;
     // --- CANVAS & VISUALIZATION FUNCTIONS (unchanged in logic) ---
     function mapGridToCanvas() { 
         const container = document.getElementById('oceanMapContainer');
+        // ensure canvas exists
+        if (!canvas) canvas = document.getElementById('oceanMapCanvas');
         canvas.width = container.clientWidth;
         canvas.height = 400; 
 
@@ -680,7 +650,6 @@ I7,30.025,36.503,8.149,South-east`;
         colLabelsDiv.innerHTML = '';
         rowLabelsDiv.innerHTML = '';
 
-        // Draw Column Labels (1, 2, 3, ...) - Top of the map
         GRID_COLS.forEach((col, index) => {
             const x = marginX + (index * colSpacing);
             const label = document.createElement('div');
@@ -692,7 +661,6 @@ I7,30.025,36.503,8.149,South-east`;
             colLabelsDiv.appendChild(label);
         });
 
-        // Draw Row Labels (A, B, C, ...) - Left of the map
         GRID_ROWS.forEach((row, index) => {
             const y = marginY + (index * rowSpacing);
             const label = document.createElement('div');
@@ -715,47 +683,47 @@ I7,30.025,36.503,8.149,South-east`;
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        ctx.strokeStyle = '#06b6d4'; 
+        ctx.strokeStyle = '#06b6d4';
         ctx.lineWidth = 2;
         ctx.strokeRect(0, 0, canvas.width, canvas.height);
 
         for (const [id, point] of Object.entries(gridPoints)) {
-            let fillColor = '#ffffff'; 
-            let strokeColor = '#22d3ee'; 
+            let fillColor = '#ffffff';
+            let strokeColor = '#22d3ee';
             let strokeWidth = 1.5;
 
             if (id === ORIGIN_GRID) {
-                fillColor = '#06b6d4'; 
+                fillColor = '#06b6d4';
                 strokeWidth = 3;
                 strokeColor = '#ffc300';
             }
 
             if (id === selectedGrid) {
-                fillColor = '#f97316'; 
+                fillColor = '#f97316';
                 strokeWidth = 4;
-                strokeColor = '#ffffff'; 
+                strokeColor = '#ffffff';
             }
 
             if (id === targetGrid) {
-                fillColor = '#10b981'; 
+                fillColor = '#10b981';
                 strokeWidth = 4;
-                strokeColor = '#ffffff'; 
+                strokeColor = '#ffffff';
             }
 
-            ctx.beginPath(); 
+            ctx.beginPath();
             ctx.arc(point.x, point.y, point.size / 2, 0, Math.PI * 2);
 
             ctx.fillStyle = fillColor;
-            ctx.fill(); 
+            ctx.fill();
 
             ctx.strokeStyle = strokeColor;
             ctx.lineWidth = strokeWidth;
             ctx.stroke();
 
             ctx.fillStyle = '#1e3a8a';
-            ctx.font = `bold 10px Inter`; 
+            ctx.font = `bold 10px Inter`;
             ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle'; 
+            ctx.textBaseline = 'middle';
             ctx.fillText(id, point.x, point.y + 1);
             ctx.closePath();
         }
@@ -765,22 +733,22 @@ I7,30.025,36.503,8.149,South-east`;
         }
     }
 
-    function drawArrow(start, end) { 
-        ctx.strokeStyle = '#22d3ee'; 
+    function drawArrow(start, end) {
+        ctx.strokeStyle = '#22d3ee';
         ctx.lineWidth = 5;
         ctx.lineCap = 'round';
         ctx.shadowBlur = 8;
-        ctx.shadowColor = '#06b6d4'; 
+        ctx.shadowColor = '#06b6d4';
 
-        const headlen = 10; 
-        const angle = Math.atan2(end.y - start.y, end.x - start.x); 
-        const distance = Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2)); 
+        const headlen = 10;
+        const angle = Math.atan2(end.y - start.y, end.x - start.x);
+        const distance = Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2));
 
-        const factor = 1 - (end.size / 2) / distance; 
-        const arrowEnd = { x: start.x + (end.x - start.x) * factor, y: start.y + (end.y - start.y) * factor }; 
+        const factor = 1 - (end.size / 2) / distance;
+        const arrowEnd = { x: start.x + (end.x - start.x) * factor, y: start.y + (end.y - start.y) * factor };
 
         const factorStart = (start.size / 2) / distance;
-        const arrowStart = { x: start.x + (end.x - start.x) * factorStart, y: start.y + (end.y - start.y) * factorStart }; 
+        const arrowStart = { x: start.x + (end.x - start.x) * factorStart, y: start.y + (end.y - start.y) * factorStart };
 
         ctx.beginPath();
         ctx.moveTo(arrowStart.x, arrowStart.y);
@@ -789,40 +757,40 @@ I7,30.025,36.503,8.149,South-east`;
 
         ctx.beginPath();
         ctx.moveTo(arrowEnd.x, arrowEnd.y);
-        ctx.lineTo(arrowEnd.x - headlen * Math.cos(angle - Math.PI / 6), arrowEnd.y - headlen * Math.sin(angle - Math.PI / 6)); 
+        ctx.lineTo(arrowEnd.x - headlen * Math.cos(angle - Math.PI / 6), arrowEnd.y - headlen * Math.sin(angle - Math.PI / 6));
         ctx.moveTo(arrowEnd.x, arrowEnd.y);
-        ctx.lineTo(arrowEnd.x - headlen * Math.cos(angle + Math.PI / 6), arrowEnd.y - headlen * Math.sin(angle + Math.PI / 6)); 
+        ctx.lineTo(arrowEnd.x - headlen * Math.cos(angle + Math.PI / 6), arrowEnd.y - headlen * Math.sin(angle + Math.PI / 6));
         ctx.stroke();
 
-        ctx.shadowBlur = 0; 
+        ctx.shadowBlur = 0;
     }
 
-    function positionMapFish(fromGrid, toGrid, isMigrating = false) { 
+    function positionMapFish(fromGrid, toGrid, isMigrating = false) {
         const mapFishIndicator = document.getElementById('mapFishIndicator');
         const startPoint = gridPoints[fromGrid];
         const endPoint = gridPoints[toGrid];
-        if (!startPoint || !endPoint) return; 
+        if (!startPoint || !endPoint) return;
 
-        const targetXPercent = (endPoint.x / canvas.width) * 100; 
-        const targetYPercent = (endPoint.y / canvas.height) * 100; 
+        const targetXPercent = (endPoint.x / canvas.width) * 100;
+        const targetYPercent = (endPoint.y / canvas.height) * 100;
 
         mapFishIndicator.style.display = 'block';
         mapFishIndicator.style.left = `${targetXPercent}%`;
         mapFishIndicator.style.top = `${targetYPercent}%`;
 
-        let transformValue = 'translate(-50%, -50%)'; 
+        let transformValue = 'translate(-50%, -50%)';
 
         if (isMigrating) {
-            const angle = Math.atan2(endPoint.y - startPoint.y, endPoint.x - startPoint.x); 
+            const angle = Math.atan2(endPoint.y - startPoint.y, endPoint.x - startPoint.x);
             if (angle > Math.PI / 2 || angle < -Math.PI / 2) {
-                transformValue += ' scaleX(-1)'; 
+                transformValue += ' scaleX(-1)';
             } else {
                 transformValue += ' scaleX(1)';
             }
         } else {
             transformValue += ' scaleX(1)';
         }
-        mapFishIndicator.style.transform = transformValue; 
+        mapFishIndicator.style.transform = transformValue;
     }
 
 
@@ -830,66 +798,79 @@ I7,30.025,36.503,8.149,South-east`;
 
     function initializeApp() {
         try {
-            // 1. Parse All Data
             allConvenientFactors.Puffer = parseCSV(PUFFER_CONVENIENT_FACTORS_CSV).filter(row => row.Fish === 'Green spotted puffer');
             allConvenientFactors.Bangus = parseCSV(BANGUS_CONVENIENT_FACTORS_CSV).filter(row => row.Fish === 'Milkfish (Bangus)');
-            gridInfo = parseCSV(GRID_INFO_CSV); 
+            gridInfo = parseCSV(GRID_INFO_CSV);
 
-            // 2. Setup Canvas
-            canvas = document.getElementById('oceanMapCanvas'); 
-            ctx = canvas.getContext('2d'); 
+            canvas = document.getElementById('oceanMapCanvas');
+            ctx = canvas.getContext('2d');
 
             const resizeCanvas = () => {
-                mapGridToCanvas(); 
+                mapGridToCanvas();
             };
 
-            resizeCanvas(); 
-            window.addEventListener('resize', resizeCanvas); 
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
 
-            // 3. Initial Setup
+            // populate species select
+            const fishSelect = document.getElementById('fishSelect');
+            // Add options only once
+            if (fishSelect.options.length <= 1) {
+                const opt1 = document.createElement('option');
+                opt1.value = 'Puffer';
+                opt1.textContent = 'Green Spotted Puffer';
+                fishSelect.appendChild(opt1);
+
+                const opt2 = document.createElement('option');
+                opt2.value = 'Bangus';
+                opt2.textContent = 'Bangus (Milkfish)';
+                fishSelect.appendChild(opt2);
+            }
+
             initializeFishData();
 
-            // Set initial mode UI
             document.getElementById('analysisTypeSelect').value = "Migration Simulation";
             toggleAnalysisMode();
 
         } catch (error) {
-            console.error("Error during initialization:", error); 
+            console.error("Error during initialization:", error);
         }
     }
 
     function toggleAnalysisMode() {
         const analysisType = document.getElementById('analysisTypeSelect').value;
         const runButton = document.getElementById('analyzeButton');
+        const gridAnalysisButton = document.getElementById('gridAnalysisButton');
         const scoreCard = document.getElementById('scoreBar').closest('.p-5');
         const migrationStatus = document.getElementById('migrationStatus');
-        const gridSelectControl = document.getElementById('gridSelectControl');
-        const oceanMapCard = document.getElementById('oceanMapCard'); // Reference to the map card
-        
-        // Always check inputs to update button state
-        checkInputs(); 
+        const locationInputCard = document.getElementById('locationInputCard');
+        const oceanMapCard = document.getElementById('oceanMapCard');
+
+        checkInputs();
 
         if (analysisType === 'Migration Simulation') {
-            // UI for Migration Simulation
-            runButton.textContent = 'Run Analysis & Migration Check 🐠';
-            document.getElementById('mainTitle').textContent = 'AQUARIS AI - Otolith Analysis';
+            runButton.style.display = ''; // show analyze button
+            runButton.disabled = true; // will be set by checkInputs
+            gridAnalysisButton.classList.add('hidden');
             scoreCard.classList.remove('hidden');
             migrationStatus.classList.remove('hidden');
-            gridSelectControl.classList.remove('hidden'); // Show grid selector
-            oceanMapCard.classList.remove('hidden'); // Show map visualization
-            setTableForFactorBreakdown(); 
-
+            gridSelectControl.classList.remove('hidden');
+            oceanMapCard.classList.remove('hidden');
+            locationInputCard.classList.remove('hidden');
+            runButton.textContent = 'Run Analysis & Migration Check 🐠';
+            document.getElementById('mainTitle').textContent = 'AQUARIS AI - Otolith Analysis';
         } else if (analysisType === 'Ocean Grid Analysis') {
-            // UI for Ocean Grid Analysis
-            runButton.textContent = 'Run 63-Grid Suitability Check 🌊';
-            document.getElementById('mainTitle').textContent = 'AQUARIS AI - Ocean Grid Analysis';
-            scoreCard.classList.remove('hidden'); 
-            migrationStatus.classList.add('hidden'); // Hide migration status
-            gridSelectControl.classList.add('hidden'); // Hide grid selector
-            oceanMapCard.classList.add('hidden'); // HIDE map visualization
-            setTableForGridAnalysis(); 
+            // Hide migration-specific controls, show only central grid button
+            runButton.style.display = 'none';
+            gridAnalysisButton.classList.remove('hidden');
+            scoreCard.classList.add('hidden'); 
+            migrationStatus.classList.add('hidden'); 
+            gridSelectControl.classList.add('hidden'); 
+            oceanMapCard.classList.add('hidden'); 
+            locationInputCard.classList.add('hidden');
+            document.getElementById('mainTitle').textContent = 'AQUARIS AI - Otolith Analysis';
 
-            // Clear previous results view
+            // Reset results area to initial state
             document.getElementById('resultsDisplay').classList.add('hidden');
             document.getElementById('initialMessage').classList.remove('hidden');
             document.getElementById('mapFishIndicator').style.display = 'none';
@@ -904,7 +885,7 @@ I7,30.025,36.503,8.149,South-east`;
         const aiInsightCard = document.getElementById('aiInsightCard');
 
         // Always populate Grid Selector (only done once)
-        if (gridSelect.options.length <= 1) { 
+        if (gridSelect.options.length <= 1) {
             gridInfo.forEach(data => {
                 const option = document.createElement('option');
                 option.value = data.Grid;
@@ -913,14 +894,12 @@ I7,30.025,36.503,8.149,South-east`;
             });
         }
 
-        // Reset dependent selectors and fields
         lifeStageSelect.innerHTML = '<option value="" disabled selected>-- Choose Stage --</option>';
-        gridSelect.value = ""; 
+        gridSelect.value = "";
 
         if (!currentFish) {
-            // No species selected. Set initial UI state.
             aiInsightCard.innerHTML = '<h2 class="text-lg font-bold text-cyan-400 mb-2">AI Insight</h2><p class="text-sm text-gray-400">Select a species above to view its habitat requirements and migration insights.</p>';
-            checkInputs(); // Disable button
+            checkInputs();
             document.getElementById('mapFishIndicator').style.display = 'none';
             redrawMap(null, null);
             return;
@@ -929,10 +908,8 @@ I7,30.025,36.503,8.149,South-east`;
         const convenientFactors = allConvenientFactors[currentFish];
         const fishName = (currentFish === 'Puffer') ? 'Green Spotted Puffer' : 'Bangus (Milkfish)';
 
-        // Update AI Insight with species data
         aiInsightCard.innerHTML = `<h2 class="text-lg font-bold text-cyan-400 mb-2">AI Insight: ${fishName}</h2><p class="text-sm text-gray-400">${getFishInsight(currentFish)}</p>`;
 
-        // Populate Life Stage Selector
         const lifeStages = [...new Set(convenientFactors.map(f => f['Life Stages']))];
         lifeStages.forEach(stage => {
             const option = document.createElement('option');
@@ -941,61 +918,75 @@ I7,30.025,36.503,8.149,South-east`;
             lifeStageSelect.appendChild(option);
         });
 
-        // Re-run input check and mode check to update button/UI state
-        checkInputs(); 
+        checkInputs();
         toggleAnalysisMode();
     }
 
-    function checkInputs() { 
+    function checkInputs() {
         const selectedFish = document.getElementById('fishSelect').value;
         const lifeStage = document.getElementById('lifeStageSelect').value;
         const selectedGrid = document.getElementById('gridSelect').value;
         const analysisType = document.getElementById('analysisTypeSelect').value;
         const button = document.getElementById('analyzeButton');
+        const gridAnalysisButton = document.getElementById('gridAnalysisButton');
 
         let isReady = false;
 
         if (analysisType === 'Migration Simulation') {
-            // Migration requires Fish, Stage, AND Grid
-            isReady = (selectedFish && lifeStage && selectedGrid); 
+            isReady = (selectedFish && lifeStage && selectedGrid);
         } else if (analysisType === 'Ocean Grid Analysis') {
-            // Grid Analysis requires only Fish and Stage
             isReady = (selectedFish && lifeStage);
         }
-        
-        button.disabled = !isReady; 
 
-        // Update initial message visibility based on readiness for the current mode
+        if (analysisType === 'Migration Simulation') {
+            button.disabled = !isReady;
+            // ensure gridAnalysisButton hidden
+            gridAnalysisButton.classList.add('hidden');
+        } else {
+            // ocean grid mode
+            // main analyzeButton hidden by toggleAnalysisMode; enable/disable central grid button
+            gridAnalysisButton.disabled = !isReady;
+        }
+
         const initialMessage = document.getElementById('initialMessage');
         const resultsDisplay = document.getElementById('resultsDisplay');
         const mapFishIndicator = document.getElementById('mapFishIndicator');
 
         if (isReady) {
-            initialMessage.classList.add('hidden'); 
-            resultsDisplay.classList.add('hidden'); // Hide results until analysis is run
-            
-            // Only update map and fish if we're in Migration Simulation mode with a selected grid
+            initialMessage.classList.add('hidden');
+            resultsDisplay.classList.add('hidden');
             if (analysisType === 'Migration Simulation' && selectedGrid) {
                 redrawMap(selectedGrid, null);
-                if (gridPoints[selectedGrid]) { 
+                if (gridPoints[selectedGrid]) {
                     positionMapFish(selectedGrid, selectedGrid, false);
                 }
             } else {
-                // Clear map indicators for Ocean Grid Analysis
                 mapFishIndicator.style.display = 'none';
-                redrawMap(null, null); 
+                redrawMap(null, null);
             }
         } else {
-            // If not ready, show the initial message and hide results
-            initialMessage.classList.remove('hidden'); 
-            resultsDisplay.classList.add('hidden'); 
+            initialMessage.classList.remove('hidden');
+            resultsDisplay.classList.add('hidden');
             mapFishIndicator.style.display = 'none';
             redrawMap(null, null);
         }
     }
-    
+
+    // Hook new Ocean Grid button
+    document.addEventListener('DOMContentLoaded', () => {
+        const gridBtn = document.getElementById('gridAnalysisButton');
+        gridBtn.addEventListener('click', () => {
+            // When pressed, run only the grid analysis (runAnalysis handles the branch)
+            runAnalysis();
+        });
+
+        // Ensure analyzeButton still works
+        const analyzeBtn = document.getElementById('analyzeButton');
+        analyzeBtn.addEventListener('click', () => {
+            runAnalysis();
+        });
+    });
+
     // Initial call to start the application
     window.onload = initializeApp;
-</script>
-</body>
-</html>
+    </script>
